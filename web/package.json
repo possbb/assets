@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "vinext dev",
-    "build": "vinext build",
+    "build": "vite build",
     "start": "vinext start",
     "test": "pnpm run build && node --test tests/app-source.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
