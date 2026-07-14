@@ -216,7 +216,10 @@ function FundingBalanceTrendChart({ liquid, investment, endowment, flows }: { li
     { key: "endowment", label: "投资-增额寿", className: "endowment" },
     { key: "total", label: "总资金+增额寿余额", className: "total" },
   ] as const;
-  const compactMoney = (amount: number) => amount >= 100000000 ? `¥${(amount / 100000000).toFixed(1)}亿` : `¥${Math.round(amount / 1000000)}万`;
+  const compactMoney = (amount: number) => {
+    const yuan = amount / 100;
+    return yuan >= 100000000 ? `¥${(yuan / 100000000).toFixed(1)}亿` : `¥${Math.round(yuan / 10000)}万`;
+  };
 
   return <section className="funding-trend">
     <div className="funding-trend-header"><div><h3>按月资金余额趋势</h3><p className="footnote">以当前账户余额为基线，叠加未来 12 个月待发生的基准预测；存单到期与增额寿缴费同步反映在对应资产余额中。</p></div></div>
