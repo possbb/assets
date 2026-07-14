@@ -17,6 +17,9 @@ test("ships the asset manager rather than the starter preview", async () => {
   assert.match(layout, /家财管家/);
   assert.match(manager, /内部转账/);
   assert.match(manager, /IndexedDB/);
+  assert.match(manager, /导入 Excel/);
+  assert.match(manager, /importPersonalAssetWorkbook/);
   assert.match(storage, /indexedDB\.open/);
+  assert.match(packageJson, /"xlsx"/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
 });

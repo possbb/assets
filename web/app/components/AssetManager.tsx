@@ -5,6 +5,7 @@ import {
   Account, AccountKind, AppState, Asset, createId, DocumentRecord,
   ExpectedCashflow, FlowType, Liquidity, readState, seedState, Transaction, writeState,
 } from "../lib/storage";
+import { importPersonalAssetWorkbook } from "../lib/excel-import";
 
 type View = "总览" | "账户" | "流水" | "资产负债" | "资金预测" | "证照提醒" | "数据安全";
 type DialogKind = "账户" | "流水" | "资产" | "预测" | "证照" | null;
@@ -65,6 +66,20 @@ export function AssetManager() {
     reader.readAsText(file); event.target.value = "";
   };
 
+  const importExcel = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!window.confirm("Excel 导入会替换当前浏览器中的账本。建议先导出备份，是否继续？")) return;
+    try {
+      const { appState, review } = await importPersonalAssetWorkbook(file);
+      setState(appState);
+      setNotice(`Excel 已导入：${appState.accounts.length} 个账户、${appState.assets.length} 项资产、${appState.cashflows.length} 条预计现金流、${appState.documents.length} 项证照。另有 ${review.skippedAssetTransfers.length} 条资产转换和 ${review.skippedRows.length} 条异常记录待复核。`);
+    } catch (error) {
+      setNotice(error instanceof Error ? `Excel 导入失败：${error.message}` : "Excel 导入失败，请确认文件格式与工作表名称。");
+    }
+  };
+
   if (!state || !metrics) return <main className="main"><p className="muted">正在打开本地账本…</p></main>;
   const defaultDialog: DialogKind = view === "账户" ? "账户" : view === "流水" ? "流水" : view === "资产负债" ? "资产" : view === "资金预测" ? "预测" : "证照";
 
@@ -77,7 +92,7 @@ export function AssetManager() {
     <main className="main">
       <header className="topbar">
         <div><div className="eyebrow">家庭资产管理 · 本地 MVP</div><h1>{view}</h1><p className="subtitle">最后更新：{new Intl.DateTimeFormat("zh-CN", { dateStyle: "medium", timeStyle: "short" }).format(new Date(state.updatedAt))}</p></div>
-        <div className="actions"><button className="button" type="button" onClick={exportData}>导出备份</button><label className="button">导入备份<input aria-label="导入备份文件" type="file" accept="application/json" hidden onChange={importData} /></label><button className="button button-primary" type="button" onClick={() => setDialog(defaultDialog)}>新增记录</button></div>
+        <div className="actions"><button className="button" type="button" onClick={exportData}>导出备份</button><label className="button">导入备份<input aria-label="导入备份文件" type="file" accept="application/json" hidden onChange={importData} /></label><label className="button">导入 Excel<input aria-label="导入 Excel 数据文件" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden onChange={importExcel} /></label><button className="button button-primary" type="button" onClick={() => setDialog(defaultDialog)}>新增记录</button></div>
       </header>
       {notice && <div className="alert"><strong>提示</strong>{notice}<button className="button" type="button" onClick={() => setNotice("")}>知道了</button></div>}
       {view === "总览" && <Dashboard state={state} metrics={metrics} onNavigate={setView} />}
