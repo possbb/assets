@@ -45,6 +45,7 @@ function nextMonthDate(month: unknown) {
 function accountKind(sourceType: unknown): Account["kind"] {
   const text = safeText(sourceType, "");
   if (text.includes("流动")) return "现金";
+  if (text.includes("不含增额寿")) return "投资";
   if (text.includes("增额寿") || text.includes("保险")) return "保险";
   if (text.includes("信用")) return "信用卡";
   return "投资";
