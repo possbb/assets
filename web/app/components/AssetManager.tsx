@@ -149,7 +149,43 @@ function Assets({ state }: { state: AppState }) {
 function Forecast({ state }: { state: AppState }) {
   const flows = state.cashflows.filter((flow) => flow.scenario === "基准" && flow.status === "待发生").sort((a, b) => a.dueDate.localeCompare(b.dueDate));
   const net = flows.reduce((sum, flow) => sum + (flow.direction === "流入" ? flow.amountMinor : -flow.amountMinor), 0);
-  return <><section className="metric-grid"><Metric label="基准情景净现金流" value={money(net)} detail="所有待发生、基准情景记录" tone={net < 0 ? "warn" : "good"} /><Metric label="待发生事项" value={`${flows.length} 项`} detail="需在月结时与实际流水核对" tone="good" /><Metric label="最近一笔" value={flows[0] ? shortDate(flows[0].dueDate) : "—"} detail={flows[0]?.title ?? "暂无计划"} tone="good" /><Metric label="情景说明" value="基准" detail="可另建保守情景，不覆盖实际流水" tone="good" /></section><section className="card" style={{ marginTop: 16 }}><div className="card-header"><div><h2>预计现金流</h2><p className="footnote">预测是独立计划，不会自动改变账户余额；发生后请新增实际流水并标记已发生。</p></div></div><CashflowRows cashflows={flows} /></section></>;
+  return <><section className="metric-grid"><Metric label="基准情景净现金流" value={money(net)} detail="所有待发生、基准情景记录" tone={net < 0 ? "warn" : "good"} /><Metric label="待发生事项" value={`${flows.length} 项`} detail="需在月结时与实际流水核对" tone="good" /><Metric label="最近一笔" value={flows[0] ? shortDate(flows[0].dueDate) : "—"} detail={flows[0]?.title ?? "暂无计划"} tone="good" /><Metric label="情景说明" value="基准" detail="可另建保守情景，不覆盖实际流水" tone="good" /></section><section className="card" style={{ marginTop: 16 }}><div className="card-header"><div><h2>按月资金预测</h2><p className="footnote">按月汇总待发生的基准情景，显示流入、流出、月度净变动和累计净变动。</p></div></div><MonthlyForecastChart flows={flows} /></section><section className="card" style={{ marginTop: 16 }}><div className="card-header"><div><h2>预计现金流</h2><p className="footnote">预测是独立计划，不会自动改变账户余额；发生后请新增实际流水并标记已发生。</p></div></div><CashflowRows cashflows={flows} /></section></>;
+}
+
+function MonthlyForecastChart({ flows }: { flows: ExpectedCashflow[] }) {
+  const buckets = new Map<string, { income: number; outflow: number }>();
+  flows.forEach((flow) => {
+    const month = flow.dueDate.slice(0, 7);
+    const current = buckets.get(month) ?? { income: 0, outflow: 0 };
+    if (flow.direction === "流入") current.income += flow.amountMinor;
+    else current.outflow += flow.amountMinor;
+    buckets.set(month, current);
+  });
+  let cumulative = 0;
+  const months = [...buckets.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([month, values]) => {
+    const net = values.income - values.outflow;
+    cumulative += net;
+    return { month, ...values, net, cumulative };
+  });
+  const maxAmount = Math.max(1, ...months.flatMap(({ income, outflow }) => [income, outflow]));
+
+  if (!months.length) return <p className="empty">暂无待发生的基准情景记录，添加预测后将显示月度图表。</p>;
+
+  return <div className="forecast-chart" role="img" aria-label="按月资金预测柱状图，显示每月流入、流出、净变动和累计净变动。">
+    <div className="forecast-legend" aria-hidden="true"><span><i className="forecast-swatch income" />流入</span><span><i className="forecast-swatch outflow" />流出</span></div>
+    <div className="forecast-chart-columns">
+      {months.map((item) => {
+        const label = new Intl.DateTimeFormat("zh-CN", { year: "numeric", month: "short" }).format(new Date(`${item.month}-01T00:00:00`));
+        return <div className="forecast-column" key={item.month}>
+          <div className="forecast-bars" aria-hidden="true"><div className="forecast-bar income" style={{ height: item.income ? `${Math.max(4, item.income / maxAmount * 100)}%` : 0 }} /><div className="forecast-bar outflow" style={{ height: item.outflow ? `${Math.max(4, item.outflow / maxAmount * 100)}%` : 0 }} /></div>
+          <strong className={`money ${item.net < 0 ? "negative" : ""}`}>{item.net > 0 ? "+" : ""}{money(item.net)}</strong>
+          <span>{label}</span>
+          <span className="footnote">入 {money(item.income)} · 出 {money(item.outflow)}</span>
+          <span className="footnote">累计 {item.cumulative > 0 ? "+" : ""}{money(item.cumulative)}</span>
+        </div>;
+      })}
+    </div>
+  </div>;
 }
 
 function Documents({ state }: { state: AppState }) {
