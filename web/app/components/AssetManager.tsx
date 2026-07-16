@@ -6,6 +6,7 @@ import {
   ExpectedCashflow, FlowType, Liquidity, readState, seedState, Transaction, writeState,
 } from "../lib/storage";
 import { importPersonalAssetWorkbook } from "../lib/excel-import";
+import { readSharedState, replaceSharedState } from "../lib/remote-storage";
 
 type View = "总览" | "账户" | "流水" | "资产负债" | "资金预测" | "证照提醒" | "数据安全";
 type DialogKind = "账户" | "流水" | "资产" | "预测" | "证照" | null;
@@ -28,7 +29,21 @@ export function AssetManager() {
   const [notice, setNotice] = useState("");
   const [query, setQuery] = useState("");
 
-  useEffect(() => { readState().then((value) => setState(value ?? seedState())).catch(() => setState(seedState())); }, []);
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      try {
+        const shared = await readSharedState();
+        if (shared) {
+          if (active) setState(shared);
+          return;
+        }
+      } catch { /* 首次使用时尚未创建线上表，继续读取本地账本。 */ }
+      const local = await readState().catch(() => null);
+      if (active) setState(local ?? seedState());
+    })();
+    return () => { active = false; };
+  }, []);
   useEffect(() => { if (state) void writeState(state).catch(() => setNotice("本地保存失败，请导出备份后重试。")); }, [state]);
 
   const metrics = useMemo(() => state ? calculateMetrics(state) : null, [state]);
@@ -74,7 +89,17 @@ export function AssetManager() {
     try {
       const { appState, review } = await importPersonalAssetWorkbook(file);
       setState(appState);
-      setNotice(`Excel 已导入：${appState.accounts.length} 个账户、${appState.assets.length} 项资产、${appState.cashflows.length} 条预计现金流、${appState.documents.length} 项证照。另有 ${review.skippedAssetTransfers.length} 条资产转换和 ${review.skippedRows.length} 条异常记录待复核。`);
+      const password = window.prompt("输入同步密码，将本次导入作为线上最新账本：");
+      if (!password) {
+        setNotice("Excel 已导入本地；未输入同步密码，因此没有更新线上最新账本。");
+        return;
+      }
+      try {
+        await replaceSharedState(appState, password);
+        setNotice(`Excel 已导入并同步线上：${appState.accounts.length} 个账户、${appState.assets.length} 项资产、${appState.cashflows.length} 条预计现金流、${appState.documents.length} 项证照。另有 ${review.skippedAssetTransfers.length} 条资产转换和 ${review.skippedRows.length} 条异常记录待复核。`);
+      } catch (error) {
+        setNotice(error instanceof Error ? `Excel 已导入本地，但线上同步失败：${error.message}` : "Excel 已导入本地，但线上同步失败。");
+      }
     } catch (error) {
       setNotice(error instanceof Error ? `Excel 导入失败：${error.message}` : "Excel 导入失败，请确认文件格式与工作表名称。");
     }
