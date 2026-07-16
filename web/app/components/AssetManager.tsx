@@ -169,14 +169,16 @@ function Transactions({ state, query, onQuery }: { state: AppState; query: strin
 }
 
 function Assets({ state }: { state: AppState }) {
+  const oakBayForecastLiability = state.cashflows.filter((flow) => flow.title === "橡树湾" && flow.direction === "流出" && flow.scenario === "基准" && flow.status === "待发生").reduce((sum, flow) => sum + flow.amountMinor, 0);
+  const liabilityFor = (asset: Asset) => asset.liabilityMinor + (asset.name === "亦庄橡树湾" ? oakBayForecastLiability : 0);
   const totals = state.assets.reduce((sum, asset) => {
     const share = asset.ownershipPct / 100;
     sum.gross += asset.grossValueMinor * share;
-    sum.liability += asset.liabilityMinor * share;
+    sum.liability += liabilityFor(asset) * share;
     return sum;
   }, { gross: 0, liability: 0 });
   const netTotal = totals.gross - totals.liability;
-  return <section className="card"><div className="card-header"><div><h2>资产、估值与关联负债</h2><p className="footnote">当前价值以最新估值为准；成本、市场价、行权价和贷款余额应分开维护。</p></div></div><div className="table-wrap"><table><thead><tr><th>资产</th><th>归属/权益</th><th>状态</th><th>估值日期</th><th>毛值</th><th>关联负债</th><th>净值</th></tr></thead><tbody>{state.assets.map((asset) => { const share = asset.ownershipPct / 100; const net = (asset.grossValueMinor - asset.liabilityMinor) * share; return <tr key={asset.id}><td><strong>{asset.name}</strong><div className="footnote">{asset.type} · {asset.liquidity}流动性</div></td><td>{asset.owner}<div className="footnote">{asset.ownershipPct}%</div></td><td><span className="chip muted">{asset.status}</span></td><td>{asset.valuationDate}</td><td className="money">{money(asset.grossValueMinor * share, asset.currency)}</td><td className="money negative">-{money(asset.liabilityMinor * share, asset.currency)}</td><td className="money">{money(net, asset.currency)}</td></tr>; })}</tbody><tfoot><tr><th colSpan={4}>合计</th><td className="money">{money(totals.gross)}</td><td className="money negative">-{money(totals.liability)}</td><td className="money">{money(netTotal)}</td></tr></tfoot></table></div>{state.assets.length === 0 && <p className="empty">还没有资产记录。</p>}</section>;
+  return <section className="card"><div className="card-header"><div><h2>资产、估值与关联负债</h2><p className="footnote">当前价值以最新估值为准；橡树湾固定关联资金预测中同名的基准待发生流出。</p></div></div><div className="table-wrap"><table><thead><tr><th>资产</th><th>归属/权益</th><th>状态</th><th>估值日期</th><th>毛值</th><th>关联负债</th><th>净值</th></tr></thead><tbody>{state.assets.map((asset) => { const share = asset.ownershipPct / 100; const liability = liabilityFor(asset); const net = (asset.grossValueMinor - liability) * share; return <tr key={asset.id}><td><strong>{asset.name}</strong><div className="footnote">{asset.type} · {asset.liquidity}流动性</div></td><td>{asset.owner}<div className="footnote">{asset.ownershipPct}%</div></td><td><span className="chip muted">{asset.status}</span></td><td>{asset.valuationDate}</td><td className="money">{money(asset.grossValueMinor * share, asset.currency)}</td><td className="money negative">-{money(liability * share, asset.currency)}</td><td className="money">{money(net, asset.currency)}</td></tr>; })}</tbody><tfoot><tr><th colSpan={4}>合计</th><td className="money">{money(totals.gross)}</td><td className="money negative">-{money(totals.liability)}</td><td className="money">{money(netTotal)}</td></tr></tfoot></table></div>{state.assets.length === 0 && <p className="empty">还没有资产记录。</p>}</section>;
 }
 
 function Forecast({ state }: { state: AppState }) {
