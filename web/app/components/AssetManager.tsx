@@ -188,8 +188,14 @@ function DashboardAttention({ state, onNavigate }: { state: AppState; onNavigate
 }
 
 type CashSafetyPoint = { month: string; flexibleMinor: number; nonFlexibleMinor: number; totalMinor: number };
+function normalizedForecastMonth(month: string) {
+  const [year, rawMonth] = month.split("-").map(Number);
+  if (!year || !rawMonth) return month;
+  const date = new Date(year, rawMonth - 1, 1);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
 function cashSafetyPoints(state: AppState): CashSafetyPoint[] {
-  if (state.fundingForecast?.length) return [...state.fundingForecast].sort((a, b) => a.month.localeCompare(b.month)).map((point) => ({ month: point.month, flexibleMinor: point.flexibleMinor, nonFlexibleMinor: point.nonFlexibleMinor, totalMinor: point.totalMinor }));
+  if (state.fundingForecast?.length) return state.fundingForecast.map((point) => ({ month: normalizedForecastMonth(point.month), flexibleMinor: point.flexibleMinor, nonFlexibleMinor: point.nonFlexibleMinor, totalMinor: point.totalMinor })).sort((a, b) => a.month.localeCompare(b.month));
   const liquid = state.accounts.filter((account) => account.liquidity === "高").reduce((sum, account) => sum + account.balanceMinor, 0);
   const investment = state.accounts.filter((account) => account.liquidity === "低").reduce((sum, account) => sum + account.balanceMinor, 0);
   return buildFallbackForecast(liquid, investment, state.cashflows).map((point) => ({ month: point.month, flexibleMinor: point.liquid, nonFlexibleMinor: point.investment, totalMinor: point.total }));
@@ -294,7 +300,8 @@ function buildFallbackForecast(liquid: number, investment: number, flows: Expect
   const start = new Date(`${firstMonth}-01T00:00:00`);
   let flexible = liquid; let nonFlexible = investment;
   return Array.from({ length: 12 }, (_, index) => {
-    const month = `${start.getFullYear()}-${String(start.getMonth() + index + 1).padStart(2, "0")}`;
+    const date = new Date(start.getFullYear(), start.getMonth() + index, 1);
+    const month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
     planned.filter((flow) => flow.dueDate.startsWith(month)).forEach((flow) => {
       const change = flow.direction === "流入" ? flow.amountMinor : -flow.amountMinor;
       if (flow.fundingBucket === "非灵活") nonFlexible += change; else flexible += change;
