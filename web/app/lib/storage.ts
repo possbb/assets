@@ -22,7 +22,12 @@ export type Asset = {
 export type ExpectedCashflow = {
   id: string; dueDate: string; direction: "流入" | "流出"; amountMinor: number;
   currency: string; category: string; title: string; scenario: "基准" | "保守";
-  status: "待发生" | "已发生" | "取消";
+  status: "待发生" | "已发生" | "取消"; fundingBucket?: "灵活" | "非灵活";
+};
+
+export type FundingForecastPoint = {
+  month: string; category: "ACT" | "FCST"; flexibleMinor: number;
+  nonFlexibleMinor: number; totalMinor: number; liabilityMinor: number;
 };
 
 export type DocumentRecord = {
@@ -33,7 +38,7 @@ export type DocumentRecord = {
 
 export type AppState = {
   version: 1; accounts: Account[]; transactions: Transaction[]; assets: Asset[];
-  cashflows: ExpectedCashflow[]; documents: DocumentRecord[]; updatedAt: string;
+  cashflows: ExpectedCashflow[]; documents: DocumentRecord[]; fundingForecast?: FundingForecastPoint[]; updatedAt: string;
 };
 
 const storeName = "app-state";

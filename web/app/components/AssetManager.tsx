@@ -96,7 +96,7 @@ export function AssetManager() {
       }
       try {
         await replaceSharedState(appState, password);
-        setNotice(`Excel 已导入并同步线上：${appState.accounts.length} 个账户、${appState.assets.length} 项资产、${appState.cashflows.length} 条预计现金流、${appState.documents.length} 项证照。另有 ${review.skippedAssetTransfers.length} 条资产转换和 ${review.skippedRows.length} 条异常记录待复核。`);
+        setNotice(`Excel 已导入并同步线上：${appState.accounts.length} 个账户、${appState.assets.length} 项资产、${appState.cashflows.length} 条预计现金流、${appState.fundingForecast?.length ?? 0} 个月资金预测、${appState.documents.length} 项资料。另有 ${review.skippedAssetTransfers.length} 条资产转换和 ${review.skippedRows.length} 条异常记录待复核。`);
       } catch (error) {
         setNotice(error instanceof Error ? `Excel 已导入本地，但线上同步失败：${error.message}` : "Excel 已导入本地，但线上同步失败。");
       }
@@ -182,89 +182,66 @@ function Assets({ state }: { state: AppState }) {
 function Forecast({ state }: { state: AppState }) {
   const flows = state.cashflows.filter((flow) => flow.scenario === "基准" && flow.status === "待发生").sort((a, b) => a.dueDate.localeCompare(b.dueDate));
   const net = flows.reduce((sum, flow) => sum + (flow.direction === "流入" ? flow.amountMinor : -flow.amountMinor), 0);
-  return <><section className="metric-grid"><Metric label="基准情景净现金流" value={money(net)} detail="所有待发生、基准情景记录" tone={net < 0 ? "warn" : "good"} /><Metric label="待发生事项" value={`${flows.length} 项`} detail="需在月结时与实际流水核对" tone="good" /><Metric label="最近一笔" value={flows[0] ? shortDate(flows[0].dueDate) : "—"} detail={flows[0]?.title ?? "暂无计划"} tone="good" /><Metric label="情景说明" value="基准" detail="可另建保守情景，不覆盖实际流水" tone="good" /></section><section className="card" style={{ marginTop: 16 }}><div className="card-header"><div><h2>资金余额结构</h2><p className="footnote">仅展示流动资金、投资与增额寿余额；总资金为前三项之和。</p></div></div><FundingBalanceChart state={state} /></section><section className="card" style={{ marginTop: 16 }}><div className="card-header"><div><h2>预计现金流</h2><p className="footnote">预测是独立计划，不会自动改变账户余额；发生后请新增实际流水并标记已发生。</p></div></div><CashflowRows cashflows={flows} /></section></>;
+  return <><section className="metric-grid"><Metric label="基准情景净现金流" value={money(net)} detail="所有待发生、基准情景记录" tone={net < 0 ? "warn" : "good"} /><Metric label="待发生事项" value={`${flows.length} 项`} detail="需在月结时与实际流水核对" tone="good" /><Metric label="最近一笔" value={flows[0] ? shortDate(flows[0].dueDate) : "—"} detail={flows[0]?.title ?? "暂无计划"} tone="good" /><Metric label="导入预测" value={`${state.fundingForecast?.length ?? 0} 月`} detail="以资金预测表为准，不依赖透视表" tone="good" /></section><section className="card" style={{ marginTop: 16 }}><div className="card-header"><div><h2>资金余额结构</h2><p className="footnote">展示灵活资金、非灵活资金、总资金与负债；优先使用最新导入的资金预测。</p></div></div><FundingBalanceChart state={state} /></section><section className="card" style={{ marginTop: 16 }}><div className="card-header"><div><h2>预计现金流</h2><p className="footnote">预测是独立计划，不会自动改变账户余额；发生后请新增实际流水并标记已发生。</p></div></div><CashflowRows cashflows={flows} /></section></>;
 }
 
 function FundingBalanceChart({ state }: { state: AppState }) {
-  const isEndowment = (account: Account) => `${account.name}${account.institution}`.includes("增额寿");
-  const liquid = state.accounts.filter((account) => account.kind === "现金").reduce((sum, account) => sum + account.balanceMinor, 0);
-  const investment = state.accounts.filter((account) => account.kind === "投资" || (account.kind === "保险" && !isEndowment(account))).reduce((sum, account) => sum + account.balanceMinor, 0);
-  const endowment = state.accounts.filter(isEndowment).reduce((sum, account) => sum + account.balanceMinor, 0);
-  const items = [
-    { label: "流动资金余额", amount: liquid },
-    { label: "投资-不含增额寿", amount: investment },
-    { label: "投资-增额寿", amount: endowment },
-    { label: "总资金+增额寿余额", amount: liquid + investment + endowment },
-  ];
-  const maxAmount = Math.max(1, ...items.map((item) => item.amount));
-
-  return <div className="funding-chart" role="img" aria-label={`资金余额柱形图：流动资金余额${money(liquid)}，投资不含增额寿${money(investment)}，投资增额寿${money(endowment)}，总资金加增额寿余额${money(liquid + investment + endowment)}。`}>
-    <div className="funding-chart-columns">
-      {items.map((item) => <div className="funding-column" key={item.label}>
-        <div className="funding-bar-area" aria-hidden="true"><div className="funding-bar" style={{ height: item.amount ? `${Math.max(4, item.amount / maxAmount * 100)}%` : 0 }} /></div>
-        <strong className="money">{money(item.amount)}</strong>
-        <span>{item.label}</span>
-      </div>)}
-    </div>
-    <FundingBalanceTrendChart liquid={liquid} investment={investment} endowment={endowment} flows={state.cashflows} />
+  const imported = state.fundingForecast?.length ? state.fundingForecast : undefined;
+  const latest = imported?.at(-1);
+  const liquid = latest?.flexibleMinor ?? state.accounts.filter((account) => account.liquidity === "高").reduce((sum, account) => sum + account.balanceMinor, 0);
+  const investment = latest?.nonFlexibleMinor ?? state.accounts.filter((account) => account.liquidity === "低").reduce((sum, account) => sum + account.balanceMinor, 0);
+  const total = latest?.totalMinor ?? liquid + investment;
+  const liability = latest?.liabilityMinor ?? state.accounts.filter((account) => account.kind === "信用卡").reduce((sum, account) => sum + account.balanceMinor, 0);
+  const items = [{ label: "灵活资金", amount: liquid }, { label: "非灵活资金", amount: investment }, { label: "资金预测合计", amount: total }, { label: "负债预测合计", amount: liability }];
+  const maxAmount = Math.max(1, ...items.map((item) => Math.abs(item.amount)));
+  return <div className="funding-chart" role="img" aria-label={`资金预测柱形图：灵活资金${money(liquid)}，非灵活资金${money(investment)}，资金预测合计${money(total)}，负债预测合计${money(liability)}。`}>
+    <div className="funding-chart-columns">{items.map((item) => <div className="funding-column" key={item.label}><div className="funding-bar-area" aria-hidden="true"><div className="funding-bar" style={{ height: item.amount ? `${Math.max(4, Math.abs(item.amount) / maxAmount * 100)}%` : 0, opacity: item.amount < 0 ? .55 : 1 }} /></div><strong className={`money ${item.amount < 0 ? "negative" : ""}`}>{money(item.amount)}</strong><span>{item.label}</span></div>)}</div>
+    <FundingBalanceTrendChart forecast={imported} liquid={liquid} investment={investment} flows={state.cashflows} />
   </div>;
 }
 
-function FundingBalanceTrendChart({ liquid, investment, endowment, flows }: { liquid: number; investment: number; endowment: number; flows: ExpectedCashflow[] }) {
-  const forecastFlows = flows.filter((flow) => flow.scenario === "基准" && flow.status === "待发生").sort((a, b) => a.dueDate.localeCompare(b.dueDate));
-  const firstMonth = forecastFlows[0]?.dueDate.slice(0, 7) ?? today().slice(0, 7);
-  const monthDate = new Date(`${firstMonth}-01T00:00:00`);
-  const months = Array.from({ length: 12 }, (_, index) => {
-    const date = new Date(monthDate.getFullYear(), monthDate.getMonth() + index, 1);
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-  });
-  const flowsByMonth = new Map<string, ExpectedCashflow[]>();
-  forecastFlows.forEach((flow) => {
-    const month = flow.dueDate.slice(0, 7);
-    flowsByMonth.set(month, [...(flowsByMonth.get(month) ?? []), flow]);
-  });
-  let liquidBalance = liquid;
-  let investmentBalance = investment;
-  let endowmentBalance = endowment;
-  const points = months.map((month) => {
-    (flowsByMonth.get(month) ?? []).forEach((flow) => {
-      const cashChange = flow.direction === "流入" ? flow.amountMinor : -flow.amountMinor;
-      liquidBalance += cashChange;
-      if (flow.direction === "流入" && flow.title.includes("存单到期")) investmentBalance -= flow.amountMinor;
-      if (flow.direction === "流出" && flow.title.includes("增额寿")) endowmentBalance += flow.amountMinor;
-    });
-    return { month, liquid: liquidBalance, investment: investmentBalance, endowment: endowmentBalance, total: liquidBalance + investmentBalance + endowmentBalance };
-  });
-  const maxAmount = Math.max(1, ...points.flatMap((point) => [point.liquid, point.investment, point.endowment, point.total]));
+function FundingBalanceTrendChart({ forecast, liquid, investment, flows }: { forecast?: AppState["fundingForecast"]; liquid: number; investment: number; flows: ExpectedCashflow[] }) {
+  const points = forecast?.length ? forecast.map((point) => ({ month: point.month, liquid: point.flexibleMinor, investment: point.nonFlexibleMinor, total: point.totalMinor, liability: point.liabilityMinor })) : buildFallbackForecast(liquid, investment, flows);
+  const maxAmount = Math.max(1, ...points.flatMap((point) => [point.liquid, point.investment, point.total, Math.abs(point.liability)]));
   const width = 920;
   const height = 286;
   const padding = { top: 20, right: 24, bottom: 42, left: 78 };
   const plotWidth = width - padding.left - padding.right;
   const plotHeight = height - padding.top - padding.bottom;
   const x = (index: number) => padding.left + (points.length === 1 ? plotWidth / 2 : index / (points.length - 1) * plotWidth);
-  const y = (amount: number) => padding.top + (1 - amount / maxAmount) * plotHeight;
-  const series = [
-    { key: "liquid", label: "流动资金余额", className: "liquid" },
-    { key: "investment", label: "投资-不含增额寿", className: "investment" },
-    { key: "endowment", label: "投资-增额寿", className: "endowment" },
-    { key: "total", label: "总资金+增额寿余额", className: "total" },
-  ] as const;
+  const y = (amount: number) => padding.top + (1 - Math.abs(amount) / maxAmount) * plotHeight;
+  const series = [{ key: "liquid", label: "灵活资金", className: "liquid" }, { key: "investment", label: "非灵活资金", className: "investment" }, { key: "total", label: "资金预测合计", className: "total" }, { key: "liability", label: "负债预测合计", className: "endowment" }] as const;
   const compactMoney = (amount: number) => {
     const yuan = amount / 100;
     return yuan >= 100000000 ? `¥${(yuan / 100000000).toFixed(1)}亿` : `¥${Math.round(yuan / 10000)}万`;
   };
 
   return <section className="funding-trend">
-    <div className="funding-trend-header"><div><h3>按月资金余额趋势</h3><p className="footnote">以当前账户余额为基线，叠加未来 12 个月待发生的基准预测；存单到期与增额寿缴费同步反映在对应资产余额中。</p></div></div>
+    <div className="funding-trend-header"><div><h3>按月资金余额趋势</h3><p className="footnote">以最新导入的资金预测为准；未导入时才按当前账户与待发生现金流估算。</p></div></div>
     <div className="funding-trend-legend" aria-hidden="true">{series.map((item) => <span key={item.key}><i className={`funding-trend-swatch ${item.className}`} />{item.label} {money(points.at(-1)?.[item.key] ?? 0)}</span>)}</div>
     <svg className="funding-trend-svg" viewBox={`0 0 ${width} ${height}`} role="img" aria-labelledby="funding-trend-title funding-trend-desc">
-      <title id="funding-trend-title">未来十二个月资金余额趋势</title>
-      <desc id="funding-trend-desc">显示流动资金、投资不含增额寿、投资增额寿和总资金加增额寿余额的按月趋势。</desc>
+      <title id="funding-trend-title">按月资金预测趋势</title>
+      <desc id="funding-trend-desc">显示灵活资金、非灵活资金、资金预测合计和负债预测合计的按月趋势。</desc>
       {[0, .5, 1].map((ratio) => { const lineY = padding.top + (1 - ratio) * plotHeight; return <g key={ratio}><line className="funding-trend-grid" x1={padding.left} x2={width - padding.right} y1={lineY} y2={lineY} /><text className="funding-trend-axis" x={padding.left - 10} y={lineY + 4} textAnchor="end">{compactMoney(maxAmount * ratio)}</text></g>; })}
-      {points.map((point, index) => <text className="funding-trend-axis" key={point.month} x={x(index)} y={height - 16} textAnchor="middle">{index % 2 === 0 || index === points.length - 1 ? `${Number(point.month.slice(5))}月` : ""}</text>)}
+      {points.map((point, index) => <text className="funding-trend-axis" key={point.month} x={x(index)} y={height - 16} textAnchor="middle">{index % Math.max(1, Math.ceil(points.length / 12)) === 0 || index === points.length - 1 ? `${point.month.slice(2).replace("-", "/")}` : ""}</text>)}
       {series.map((item) => <g key={item.key}><polyline className={`funding-trend-line ${item.className}`} points={points.map((point, index) => `${x(index)},${y(point[item.key])}`).join(" ")} />{points.map((point, index) => <circle className={`funding-trend-point ${item.className}`} key={`${item.key}-${point.month}`} cx={x(index)} cy={y(point[item.key])} r="3" />)}</g>)}
     </svg>
   </section>;
+}
+
+function buildFallbackForecast(liquid: number, investment: number, flows: ExpectedCashflow[]) {
+  const planned = flows.filter((flow) => flow.scenario === "基准" && flow.status === "待发生").sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+  const firstMonth = planned[0]?.dueDate.slice(0, 7) ?? today().slice(0, 7);
+  const start = new Date(`${firstMonth}-01T00:00:00`);
+  let flexible = liquid; let nonFlexible = investment;
+  return Array.from({ length: 12 }, (_, index) => {
+    const month = `${start.getFullYear()}-${String(start.getMonth() + index + 1).padStart(2, "0")}`;
+    planned.filter((flow) => flow.dueDate.startsWith(month)).forEach((flow) => {
+      const change = flow.direction === "流入" ? flow.amountMinor : -flow.amountMinor;
+      if (flow.fundingBucket === "非灵活") nonFlexible += change; else flexible += change;
+    });
+    return { month, liquid: flexible, investment: nonFlexible, total: flexible + nonFlexible, liability: 0 };
+  });
 }
 
 function Documents({ state }: { state: AppState }) {
