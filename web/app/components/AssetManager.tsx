@@ -14,7 +14,6 @@ const views: View[] = ["总览", "账户", "流水", "资产负债", "资金预�
 const today = () => new Date().toISOString().slice(0, 10);
 const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 const parseMoney = (value: string) => Math.round((Number(value.replace(/,/g, "")) || 0) * 100);
-const asInputMoney = (minor: number) => (minor / 100).toFixed(2);
 const daysUntil = (date?: string) => date ? Math.ceil((new Date(`${date}T00:00:00`).getTime() - new Date(`${today()}T00:00:00`).getTime()) / 86400000) : null;
 function money(minor: number, currency = "CNY") {
   try { return new Intl.NumberFormat("zh-CN", { style: "currency", currency, maximumFractionDigits: 0 }).format(minor / 100); }
@@ -149,17 +148,17 @@ function calculateMetrics(state: AppState) {
 }
 
 function Dashboard({ state, metrics, onNavigate }: { state: AppState; metrics: ReturnType<typeof calculateMetrics>; onNavigate: (view: View) => void }) {
-  const alerts = getAlerts(state);
   const points = cashSafetyPoints(state);
   const futurePoints = points.slice(1);
   const lowest = futurePoints.reduce((current, point) => point.flexibleMinor < current.flexibleMinor ? point : current, futurePoints[0] ?? points[0]);
   const accountAsOf = [...state.accounts].map((account) => account.asOfDate).sort().at(-1) ?? "待导入";
   const forecastEnd = points.at(-1)?.month ?? "—";
+  const totalDebt = metrics.creditLiabilities + metrics.liabilities;
   return <>
     <section className="overview-hero"><div><div className="eyebrow">资金安全视图</div><h2>当前资金与未来现金流</h2><p>账户快照截至 {accountAsOf} · 预测覆盖至 {forecastEnd} · 实际流水不会被预测覆盖。</p></div><button className="button" type="button" onClick={() => onNavigate("资金预测")}>查看完整预测</button></section>
-    <section className="metric-grid" aria-label="资金安全核心指标"><Metric label="当前可动用资金" value={money(metrics.liquid)} detail="高流动性账户余额，不含信用卡应付款" tone="good" /><CashflowMetric outflow={metrics.next90Out} inflow={metrics.next90In} /><Metric label="未来最低灵活资金" value={lowest ? money(lowest.flexibleMinor) : "—"} detail={lowest ? `预计发生于 ${lowest.month}` : "导入资金预测后显示"} tone={lowest && lowest.flexibleMinor < metrics.liquid * .25 ? "warn" : "good"} /><Metric label="待处理事项" value={`${metrics.upcoming} 项`} detail="到期资料与30日内现金流" tone={metrics.upcoming ? "warn" : "good"} /></section>
-    <section className="overview-grid"><div className="card"><div className="card-header"><div><h2>未来十二个月资金走势</h2><p className="footnote">绿线为灵活资金余额；柱形显示每月净现金流。二者均以最新导入的预测为准。</p></div></div><CashSafetyChart points={points} /></div><div className="card"><div className="card-header"><h2>现在需要关注</h2><button className="button" type="button" onClick={() => onNavigate("证照提醒")}>全部提醒</button></div><div className="alert-list">{alerts.slice(0, 3).map((alert) => <div className={`alert ${alert.level}`} key={alert.id}><strong>{alert.title}</strong>{alert.detail}</div>)}{alerts.length === 0 && <p className="empty">当前没有临近事项。</p>}</div></div></section>
-    <section className="overview-grid"><AssetOverview metrics={metrics} onNavigate={onNavigate} /><div className="card"><div className="card-header"><div><h2>未来90天资金安排</h2><p className="footnote">按发生日期排列，流入和流出同等呈现。</p></div><button className="button" type="button" onClick={() => onNavigate("资金预测")}>全部计划</button></div><CashflowRows cashflows={state.cashflows.filter((flow) => flow.status === "待发生" && (daysUntil(flow.dueDate) ?? 999) >= 0 && (daysUntil(flow.dueDate) ?? 999) <= 90).sort((a, b) => a.dueDate.localeCompare(b.dueDate)).slice(0, 6)} /></div></section>
+    <section className="metric-grid overview-metric-grid" aria-label="当前资金与资产摘要"><Metric label="当前可动用资金" value={money(metrics.liquid)} detail="高流动性账户余额，不含信用卡应付款" tone="good" /><Metric label="家庭净资产" value={money(metrics.netWorth)} detail={`金融资产与固定资产净值合计`} tone="good" /><Metric label="未来最低灵活资金" value={lowest ? money(lowest.flexibleMinor) : "—"} detail={lowest ? `预计发生于 ${lowest.month}` : "导入资金预测后显示"} tone={lowest && lowest.flexibleMinor < metrics.liquid * .25 ? "warn" : "good"} /><Metric label="当前负债" value={money(totalDebt)} detail="信用卡/应付款与已关联资产负债" tone={totalDebt ? "warn" : "good"} /></section>
+    <section className="overview-grid"><div className="card"><div className="card-header"><div><h2>未来十二个月资金走势</h2><p className="footnote">绿线为灵活资金余额；柱形显示每月净现金流。二者均以最新导入的预测为准。</p></div></div><CashSafetyChart points={points} /></div><CashflowPlan state={state} onNavigate={onNavigate} /></section>
+    <section className="overview-grid"><AssetOverview metrics={metrics} onNavigate={onNavigate} /><DashboardAttention state={state} onNavigate={onNavigate} /></section>
   </>;
 }
 
@@ -167,6 +166,20 @@ function AssetOverview({ metrics, onNavigate }: { metrics: ReturnType<typeof cal
   const rows = [{ label: "金融资产净额", amount: metrics.financial, tone: "financial" }, { label: "固定资产与权益净值", amount: metrics.grossAssets - metrics.liabilities, tone: "fixed" }, { label: "信用卡及应付款", amount: -metrics.creditLiabilities, tone: "debt" }];
   const maxAmount = Math.max(1, ...rows.map((row) => Math.abs(row.amount)));
   return <div className="card"><div className="card-header"><div><h2>资产全貌</h2><p className="footnote">金融账户与固定资产分开统计，避免重复计入。</p></div><button className="button" type="button" onClick={() => onNavigate("资产负债")}>查看台账</button></div><div className="asset-net-worth"><span>家庭净资产</span><strong className="money">{money(metrics.netWorth)}</strong></div><div className="asset-composition">{rows.map((row) => <div className="asset-composition-row" key={row.label}><span>{row.label}</span><div className="asset-track"><i className={row.tone} style={{ width: `${Math.max(0, Math.abs(row.amount) / maxAmount * 100)}%` }} /></div><strong className={`money ${row.amount < 0 ? "negative" : ""}`}>{money(row.amount)}</strong></div>)}</div></div>;
+}
+
+function CashflowPlan({ state, onNavigate }: { state: AppState; onNavigate: (view: View) => void }) {
+  const flows = state.cashflows.filter((flow) => flow.status === "待发生" && (daysUntil(flow.dueDate) ?? 999) >= 0 && (daysUntil(flow.dueDate) ?? 999) <= 90).sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+  const inflow = flows.filter((flow) => flow.direction === "流入").reduce((sum, flow) => sum + flow.amountMinor, 0);
+  const outflow = flows.filter((flow) => flow.direction === "流出").reduce((sum, flow) => sum + flow.amountMinor, 0);
+  return <div className="card cashflow-plan"><div className="card-header"><div><h2>未来90天现金流与资金安排</h2><p className="footnote">流入、流出和具体计划在同一时间窗口核对。</p></div><button className="button" type="button" onClick={() => onNavigate("资金预测")}>全部计划</button></div><div className="cashflow-plan-summary"><div><span>预计流入</span><strong className="money inflow">{money(inflow)}</strong></div><div><span>预计流出</span><strong className="money outflow">{money(outflow)}</strong></div><div><span>预计净额</span><strong className={`money ${inflow - outflow < 0 ? "negative" : ""}`}>{money(inflow - outflow)}</strong></div></div><CashflowRows cashflows={flows.slice(0, 6)} /></div>;
+}
+
+function DashboardAttention({ state, onNavigate }: { state: AppState; onNavigate: (view: View) => void }) {
+  const alerts = getAlerts(state);
+  const expiryAlerts = alerts.filter((alert) => alert.id.startsWith("doc"));
+  const taskAlerts = alerts.filter((alert) => !alert.id.startsWith("doc"));
+  return <div className="card"><div className="card-header"><div><h2>待处理事项与到期提醒</h2><p className="footnote">将近期现金事项与证照、账户资料到期集中处理。</p></div><button className="button" type="button" onClick={() => onNavigate("证照提醒")}>全部提醒</button></div><div className="attention-group"><span>待处理事项</span>{taskAlerts.slice(0, 2).map((alert) => <div className={`alert ${alert.level}`} key={alert.id}><strong>{alert.title}</strong>{alert.detail}</div>)}{taskAlerts.length === 0 && <p className="muted">当前没有临近的资金事项。</p>}</div><div className="attention-group"><span>到期提醒</span>{expiryAlerts.slice(0, 2).map((alert) => <div className={`alert ${alert.level}`} key={alert.id}><strong>{alert.title}</strong>{alert.detail}</div>)}{expiryAlerts.length === 0 && <p className="muted">当前没有临近的到期资料。</p>}</div></div>;
 }
 
 type CashSafetyPoint = { month: string; flexibleMinor: number };
@@ -286,7 +299,6 @@ function Security({ reset }: { reset: () => void }) {
 }
 
 function Metric({ label, value, detail, tone }: { label: string; value: string; detail: string; tone: "good" | "warn" | "danger" }) { return <article className="metric-card"><div className="metric-label">{label}</div><div className={`metric-value metric-${tone}`}>{value}</div><div className="metric-detail">{detail}</div></article>; }
-function CashflowMetric({ outflow, inflow }: { outflow: number; inflow: number }) { return <article className="metric-card"><div className="metric-label">未来90天预计现金流</div><div className="cashflow-metric-values"><div><div className="cashflow-metric-label">流出</div><div className="cashflow-metric-value outflow">{money(outflow)}</div></div><div><div className="cashflow-metric-label">流入</div><div className="cashflow-metric-value inflow">{money(inflow)}</div></div></div><div className="metric-detail">待发生预测</div></article>; }
 function CashflowRows({ cashflows }: { cashflows: ExpectedCashflow[] }) { return <div className="forecast-list">{cashflows.map((flow) => <div className="forecast-row" key={flow.id}><span>{shortDate(flow.dueDate)}</span><span><strong>{flow.title}</strong><span className="footnote">{flow.category} · {flow.scenario}</span></span><span className={`money ${flow.direction === "流出" ? "negative" : ""}`}>{flow.direction === "流出" ? "-" : "+"}{money(flow.amountMinor, flow.currency)}</span></div>)}{cashflows.length === 0 && <p className="empty">没有待发生的预测现金流。</p>}</div>; }
 
 function getAlerts(state: AppState) {
