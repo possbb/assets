@@ -138,7 +138,8 @@ export async function importPersonalAssetWorkbook(file: File): Promise<ExcelImpo
     const stated = moneyMinor(row.values["总金额"]); const quantity = numberValue(row.values["数量"]); const unitPrice = numberValue(row.values["单价"]); const grossValueMinor = stated ?? (quantity !== null && unitPrice !== null ? Math.round(quantity * unitPrice * 100) : 0);
     if (!grossValueMinor) review.skippedRows.push({ source: sourceRow(matched.assets!.name, row.rowNumber), reason: "缺少可用估值，已作为待补录资产导入且不计入净资产" });
     const rawOwner = row.values["归属人"];
-    return { id: createImportId("asset", row.rowNumber), name: safeText(row.values["资产名称"], "导入资产"), type: assetType(row.values["资产类型"]), owner: owner(rawOwner), ownershipPct: ownership(rawOwner), grossValueMinor, liabilityMinor: 0, currency: "CNY", valuationDate: normalizeDate(row.values["购置时间"]) ?? forecastStart, liquidity: "低", status: assetStatus(row.values["资产状态"]) };
+    const category = safeText(row.values["资产类型"], assetType(row.values["资产类型"]));
+    return { id: createImportId("asset", row.rowNumber), name: safeText(row.values["资产名称"], "导入资产"), type: assetType(row.values["资产类型"]), category, owner: owner(rawOwner), ownershipPct: ownership(rawOwner), grossValueMinor, liabilityMinor: 0, currency: "CNY", valuationDate: normalizeDate(row.values["购置时间"]) ?? forecastStart, liquidity: "低", status: assetStatus(row.values["资产状态"]) };
   });
   const cashflows = [...flowRows(incomeRows, matched.income!.name, "流入", forecastStart, review), ...flowRows(expenseRows, matched.expenses!.name, "流出", forecastStart, review)].sort((a, b) => a.dueDate.localeCompare(b.dueDate));
   const documents: DocumentRecord[] = documentRows.map((row) => {

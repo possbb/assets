@@ -119,7 +119,7 @@ export function AssetManager() {
         <div className="actions"><button className="button" type="button" onClick={exportData}>导出备份</button><label className="button">导入备份<input aria-label="导入备份文件" type="file" accept="application/json" hidden onChange={importData} /></label><label className="button">导入 Excel<input aria-label="导入 Excel 数据文件" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden onChange={importExcel} /></label><button className="button button-primary" type="button" onClick={() => setDialog(defaultDialog)}>新增记录</button></div>
       </header>
       {notice && <div className="alert"><strong>提示</strong>{notice}<button className="button" type="button" onClick={() => setNotice("")}>知道了</button></div>}
-      {view === "总览" && <Dashboard state={state} metrics={metrics} onNavigate={setView} />}
+      {view === "总览" && <Dashboard state={state} onNavigate={setView} />}
       {view === "账户" && <Accounts state={state} query={query} onQuery={setQuery} />}
       {view === "流水" && <Transactions state={state} query={query} onQuery={setQuery} />}
       {view === "资产负债" && <Assets state={state} />}
@@ -147,17 +147,22 @@ function calculateMetrics(state: AppState) {
   return { financial, liquid, creditLiabilities, grossAssets, liabilities, next90Out, next90In, upcoming, netWorth: financial + grossAssets - liabilities };
 }
 
-function Dashboard({ state, metrics, onNavigate }: { state: AppState; metrics: ReturnType<typeof calculateMetrics>; onNavigate: (view: View) => void }) {
+function Dashboard({ state, onNavigate }: { state: AppState; onNavigate: (view: View) => void }) {
   const points = cashSafetyPoints(state);
   const latestActual = [...(state.fundingForecast ?? [])].filter((point) => point.category === "ACT").sort((a, b) => b.month.localeCompare(a.month))[0];
   const accountAsOf = [...state.accounts].map((account) => account.asOfDate).sort().at(-1) ?? "待导入";
   const forecastEnd = points.at(-1)?.month ?? "—";
-  const totalDebt = metrics.creditLiabilities + metrics.liabilities;
+  const fixedAssetGroups = [...state.assets.reduce((groups, asset) => {
+    const category = asset.category ?? asset.type;
+    groups.set(category, (groups.get(category) ?? 0) + (asset.grossValueMinor - asset.liabilityMinor) * asset.ownershipPct / 100);
+    return groups;
+  }, new Map<string, number>()).entries()].sort((a, b) => b[1] - a[1]);
+  const fixedAssetNet = fixedAssetGroups.reduce((sum, [, amount]) => sum + amount, 0);
   return <>
     <section className="overview-hero"><div><div className="eyebrow">资金安全视图</div><h2>当前资金与未来现金流</h2><p>账户快照截至 {accountAsOf} · 预测覆盖至 {forecastEnd} · 实际流水不会被预测覆盖。</p></div><button className="button" type="button" onClick={() => onNavigate("资金预测")}>查看完整预测</button></section>
     <section className="overview-summary-grid" aria-label="当前资金与资产摘要">
       <OverviewSnapshot title="当前资金" value={latestActual ? money(latestActual.totalMinor) : "—"} detail={latestActual ? `资金预测 · ACT · ${latestActual.month}（最新实际期间）` : "导入资金预测中的 ACT 数据后显示"} rows={[{ label: "灵活资金", value: latestActual ? money(latestActual.flexibleMinor) : "—" }, { label: "非灵活资金", value: latestActual ? money(latestActual.nonFlexibleMinor) : "—" }]} />
-      <OverviewSnapshot title="家庭净资产" value={money(metrics.netWorth)} detail="金融账户与固定资产扣除负债后的净值" rows={[{ label: "金融资产净额", value: money(metrics.financial) }, { label: "固定资产净值", value: money(metrics.grossAssets - metrics.liabilities) }, { label: "当前负债", value: money(totalDebt), tone: totalDebt ? "negative" : undefined }]} />
+      <OverviewSnapshot title="固定资产和股票期权" value={money(fixedAssetNet)} detail="仅统计“固定资产和股票期权”工作表导入的资产；按资产分类汇总" rows={fixedAssetGroups.slice(0, 3).map(([label, amount]) => ({ label, value: money(amount) }))} />
     </section>
     <section className="card overview-trend-card"><div className="card-header"><div><h2>按月资金趋势</h2><p className="footnote">同时观察总资金和流动资金，横轴按最新导入预测逐月展开。</p></div></div><CashSafetyChart points={points} /></section>
     <section className="overview-grid overview-actions-grid"><CashflowPlan state={state} onNavigate={onNavigate} /><DashboardAttention state={state} onNavigate={onNavigate} /></section>
