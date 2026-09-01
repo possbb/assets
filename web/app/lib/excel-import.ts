@@ -107,7 +107,7 @@ function buildForecast(rows: SheetRow[], cashflows: ExpectedCashflow[], accounts
   let liability = 0;
   return rows.flatMap((row, index) => {
     const monthDate = normalizeDate(row.values["期间-月初"]); if (!monthDate) return [];
-    const directFlexible = moneyMinor(row.values["灵活资金"]); const directNonFlexible = moneyMinor(row.values["非灵活资金"]); const directLiability = moneyMinor(row.values["负债预测合计"]);
+    const directFlexible = moneyMinor(row.values["灵活资金"]); const directNonFlexible = moneyMinor(row.values["非灵活资金"]); const directTotal = moneyMinor(row.values["资金预测合计"]); const directLiability = moneyMinor(row.values["负债预测合计"]);
     if (index === 0) { flexible = directFlexible ?? flexible; nonFlexible = directNonFlexible ?? nonFlexible; liability = directLiability ?? liability; }
     else {
       const flowChange = (cashflowsByMonth.get(monthDate.slice(0, 7)) ?? []).reduce((sum, flow) => { const change = flow.direction === "流入" ? flow.amountMinor : -flow.amountMinor; return { flexible: sum.flexible + (flow.fundingBucket === "非灵活" ? 0 : change), nonFlexible: sum.nonFlexible + (flow.fundingBucket === "非灵活" ? change : 0) }; }, { flexible: 0, nonFlexible: 0 });
@@ -116,7 +116,7 @@ function buildForecast(rows: SheetRow[], cashflows: ExpectedCashflow[], accounts
       if (directLiability !== null) liability = directLiability;
       else { const increase = row.formulas["负债预测合计"]?.match(/^R\d+\+(-?\d+(?:\.\d+)?)$/)?.[1]; if (increase) liability += Math.round(Number(increase) * 100); }
     }
-    return [{ month: monthDate.slice(0, 7), category: row.values["分类"] === "ACT" ? "ACT" : "FCST", flexibleMinor: flexible, nonFlexibleMinor: nonFlexible, totalMinor: flexible + nonFlexible, liabilityMinor: liability }];
+    return [{ month: monthDate.slice(0, 7), category: row.values["分类"] === "ACT" ? "ACT" : "FCST", flexibleMinor: flexible, nonFlexibleMinor: nonFlexible, totalMinor: directTotal ?? flexible + nonFlexible, liabilityMinor: liability }];
   });
 }
 

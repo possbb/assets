@@ -149,16 +149,14 @@ function calculateMetrics(state: AppState) {
 
 function Dashboard({ state, metrics, onNavigate }: { state: AppState; metrics: ReturnType<typeof calculateMetrics>; onNavigate: (view: View) => void }) {
   const points = cashSafetyPoints(state);
-  const futurePoints = points.slice(1);
-  const lowest = futurePoints.reduce((current, point) => point.flexibleMinor < current.flexibleMinor ? point : current, futurePoints[0] ?? points[0]);
+  const latestActual = [...(state.fundingForecast ?? [])].filter((point) => point.category === "ACT").sort((a, b) => b.month.localeCompare(a.month))[0];
   const accountAsOf = [...state.accounts].map((account) => account.asOfDate).sort().at(-1) ?? "待导入";
   const forecastEnd = points.at(-1)?.month ?? "—";
   const totalDebt = metrics.creditLiabilities + metrics.liabilities;
-  const nonLiquid = metrics.financial - metrics.liquid;
   return <>
     <section className="overview-hero"><div><div className="eyebrow">资金安全视图</div><h2>当前资金与未来现金流</h2><p>账户快照截至 {accountAsOf} · 预测覆盖至 {forecastEnd} · 实际流水不会被预测覆盖。</p></div><button className="button" type="button" onClick={() => onNavigate("资金预测")}>查看完整预测</button></section>
     <section className="overview-summary-grid" aria-label="当前资金与资产摘要">
-      <OverviewSnapshot title="当前资金" value={money(metrics.liquid)} detail="可随时调度的高流动性资金" rows={[{ label: "非流动资金", value: money(nonLiquid) }, { label: "未来最低流动资金", value: lowest ? money(lowest.flexibleMinor) : "—", tone: lowest && lowest.flexibleMinor < metrics.liquid * .25 ? "warn" : undefined }]} />
+      <OverviewSnapshot title="当前资金" value={latestActual ? money(latestActual.totalMinor) : "—"} detail={latestActual ? `资金预测 · ACT · ${latestActual.month}（最新实际期间）` : "导入资金预测中的 ACT 数据后显示"} rows={[{ label: "灵活资金", value: latestActual ? money(latestActual.flexibleMinor) : "—" }, { label: "非灵活资金", value: latestActual ? money(latestActual.nonFlexibleMinor) : "—" }]} />
       <OverviewSnapshot title="家庭净资产" value={money(metrics.netWorth)} detail="金融账户与固定资产扣除负债后的净值" rows={[{ label: "金融资产净额", value: money(metrics.financial) }, { label: "固定资产净值", value: money(metrics.grossAssets - metrics.liabilities) }, { label: "当前负债", value: money(totalDebt), tone: totalDebt ? "negative" : undefined }]} />
     </section>
     <section className="card overview-trend-card"><div className="card-header"><div><h2>按月资金趋势</h2><p className="footnote">同时观察总资金和流动资金，横轴按最新导入预测逐月展开。</p></div></div><CashSafetyChart points={points} /></section>
