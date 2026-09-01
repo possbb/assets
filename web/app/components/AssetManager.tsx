@@ -164,7 +164,7 @@ function Dashboard({ state, onNavigate }: { state: AppState; onNavigate: (view: 
       <OverviewSnapshot title="当前资金" value={latestActual ? money(latestActual.totalMinor) : "—"} detail={latestActual ? `资金预测 · ACT · ${latestActual.month}（最新实际期间）` : "导入资金预测中的 ACT 数据后显示"} rows={[{ label: "灵活资金", value: latestActual ? money(latestActual.flexibleMinor) : "—" }, { label: "非灵活资金", value: latestActual ? money(latestActual.nonFlexibleMinor) : "—" }]} />
       <OverviewSnapshot title="固定资产和股票期权" value={money(fixedAssetNet)} detail="仅统计“固定资产和股票期权”工作表导入的资产；按资产分类汇总" rows={fixedAssetGroups.slice(0, 3).map(([label, amount]) => ({ label, value: money(amount) }))} />
     </section>
-    <section className="card overview-trend-card"><div className="card-header"><div><h2>按月资金趋势</h2><p className="footnote">同时观察总资金和流动资金，横轴按最新导入预测逐月展开。</p></div></div><CashSafetyChart points={points} /></section>
+    <section className="card overview-trend-card"><div className="card-header"><div><h2>按月资金趋势</h2><p className="footnote">灵活资金与非灵活资金按月堆叠展示；悬停柱形可查看资金预测合计与明细。</p></div></div><CashSafetyChart points={points} /></section>
     <section className="overview-grid overview-actions-grid"><CashflowPlan state={state} onNavigate={onNavigate} /><DashboardAttention state={state} onNavigate={onNavigate} /></section>
   </>;
 }
