@@ -154,18 +154,20 @@ function Dashboard({ state, metrics, onNavigate }: { state: AppState; metrics: R
   const accountAsOf = [...state.accounts].map((account) => account.asOfDate).sort().at(-1) ?? "待导入";
   const forecastEnd = points.at(-1)?.month ?? "—";
   const totalDebt = metrics.creditLiabilities + metrics.liabilities;
+  const nonLiquid = metrics.financial - metrics.liquid;
   return <>
     <section className="overview-hero"><div><div className="eyebrow">资金安全视图</div><h2>当前资金与未来现金流</h2><p>账户快照截至 {accountAsOf} · 预测覆盖至 {forecastEnd} · 实际流水不会被预测覆盖。</p></div><button className="button" type="button" onClick={() => onNavigate("资金预测")}>查看完整预测</button></section>
-    <section className="metric-grid overview-metric-grid" aria-label="当前资金与资产摘要"><Metric label="当前可动用资金" value={money(metrics.liquid)} detail="高流动性账户余额，不含信用卡应付款" tone="good" /><Metric label="家庭净资产" value={money(metrics.netWorth)} detail={`金融资产与固定资产净值合计`} tone="good" /><Metric label="未来最低灵活资金" value={lowest ? money(lowest.flexibleMinor) : "—"} detail={lowest ? `预计发生于 ${lowest.month}` : "导入资金预测后显示"} tone={lowest && lowest.flexibleMinor < metrics.liquid * .25 ? "warn" : "good"} /><Metric label="当前负债" value={money(totalDebt)} detail="信用卡/应付款与已关联资产负债" tone={totalDebt ? "warn" : "good"} /></section>
-    <section className="overview-grid"><div className="card"><div className="card-header"><div><h2>未来十二个月资金走势</h2><p className="footnote">绿线为灵活资金余额；柱形显示每月净现金流。二者均以最新导入的预测为准。</p></div></div><CashSafetyChart points={points} /></div><CashflowPlan state={state} onNavigate={onNavigate} /></section>
-    <section className="overview-grid"><AssetOverview metrics={metrics} onNavigate={onNavigate} /><DashboardAttention state={state} onNavigate={onNavigate} /></section>
+    <section className="overview-summary-grid" aria-label="当前资金与资产摘要">
+      <OverviewSnapshot title="当前资金" value={money(metrics.liquid)} detail="可随时调度的高流动性资金" rows={[{ label: "非流动资金", value: money(nonLiquid) }, { label: "未来最低流动资金", value: lowest ? money(lowest.flexibleMinor) : "—", tone: lowest && lowest.flexibleMinor < metrics.liquid * .25 ? "warn" : undefined }]} />
+      <OverviewSnapshot title="家庭净资产" value={money(metrics.netWorth)} detail="金融账户与固定资产扣除负债后的净值" rows={[{ label: "金融资产净额", value: money(metrics.financial) }, { label: "固定资产净值", value: money(metrics.grossAssets - metrics.liabilities) }, { label: "当前负债", value: money(totalDebt), tone: totalDebt ? "negative" : undefined }]} />
+    </section>
+    <section className="card overview-trend-card"><div className="card-header"><div><h2>按月资金趋势</h2><p className="footnote">同时观察总资金和流动资金，横轴按最新导入预测逐月展开。</p></div></div><CashSafetyChart points={points} /></section>
+    <section className="overview-grid overview-actions-grid"><CashflowPlan state={state} onNavigate={onNavigate} /><DashboardAttention state={state} onNavigate={onNavigate} /></section>
   </>;
 }
 
-function AssetOverview({ metrics, onNavigate }: { metrics: ReturnType<typeof calculateMetrics>; onNavigate: (view: View) => void }) {
-  const rows = [{ label: "金融资产净额", amount: metrics.financial, tone: "financial" }, { label: "固定资产与权益净值", amount: metrics.grossAssets - metrics.liabilities, tone: "fixed" }, { label: "信用卡及应付款", amount: -metrics.creditLiabilities, tone: "debt" }];
-  const maxAmount = Math.max(1, ...rows.map((row) => Math.abs(row.amount)));
-  return <div className="card"><div className="card-header"><div><h2>资产全貌</h2><p className="footnote">金融账户与固定资产分开统计，避免重复计入。</p></div><button className="button" type="button" onClick={() => onNavigate("资产负债")}>查看台账</button></div><div className="asset-net-worth"><span>家庭净资产</span><strong className="money">{money(metrics.netWorth)}</strong></div><div className="asset-composition">{rows.map((row) => <div className="asset-composition-row" key={row.label}><span>{row.label}</span><div className="asset-track"><i className={row.tone} style={{ width: `${Math.max(0, Math.abs(row.amount) / maxAmount * 100)}%` }} /></div><strong className={`money ${row.amount < 0 ? "negative" : ""}`}>{money(row.amount)}</strong></div>)}</div></div>;
+function OverviewSnapshot({ title, value, detail, rows }: { title: string; value: string; detail: string; rows: { label: string; value: string; tone?: "warn" | "negative" }[] }) {
+  return <article className="card overview-snapshot"><div className="overview-snapshot-main"><span>{title}</span><strong className="money">{value}</strong><p>{detail}</p></div><div className="overview-snapshot-rows">{rows.map((row) => <div key={row.label}><span>{row.label}</span><strong className={`money ${row.tone ?? ""}`}>{row.value}</strong></div>)}</div></article>;
 }
 
 function CashflowPlan({ state, onNavigate }: { state: AppState; onNavigate: (view: View) => void }) {
@@ -182,24 +184,23 @@ function DashboardAttention({ state, onNavigate }: { state: AppState; onNavigate
   return <div className="card"><div className="card-header"><div><h2>待处理事项与到期提醒</h2><p className="footnote">将近期现金事项与证照、账户资料到期集中处理。</p></div><button className="button" type="button" onClick={() => onNavigate("证照提醒")}>全部提醒</button></div><div className="attention-group"><span>待处理事项</span>{taskAlerts.slice(0, 2).map((alert) => <div className={`alert ${alert.level}`} key={alert.id}><strong>{alert.title}</strong>{alert.detail}</div>)}{taskAlerts.length === 0 && <p className="muted">当前没有临近的资金事项。</p>}</div><div className="attention-group"><span>到期提醒</span>{expiryAlerts.slice(0, 2).map((alert) => <div className={`alert ${alert.level}`} key={alert.id}><strong>{alert.title}</strong>{alert.detail}</div>)}{expiryAlerts.length === 0 && <p className="muted">当前没有临近的到期资料。</p>}</div></div>;
 }
 
-type CashSafetyPoint = { month: string; flexibleMinor: number };
+type CashSafetyPoint = { month: string; flexibleMinor: number; totalMinor: number };
 function cashSafetyPoints(state: AppState): CashSafetyPoint[] {
-  if (state.fundingForecast?.length) return state.fundingForecast.slice(0, 13).map((point) => ({ month: point.month, flexibleMinor: point.flexibleMinor }));
+  if (state.fundingForecast?.length) return state.fundingForecast.slice(0, 13).map((point) => ({ month: point.month, flexibleMinor: point.flexibleMinor, totalMinor: point.totalMinor }));
   const liquid = state.accounts.filter((account) => account.liquidity === "高").reduce((sum, account) => sum + account.balanceMinor, 0);
   const investment = state.accounts.filter((account) => account.liquidity === "低").reduce((sum, account) => sum + account.balanceMinor, 0);
-  return buildFallbackForecast(liquid, investment, state.cashflows).map((point) => ({ month: point.month, flexibleMinor: point.liquid }));
+  return buildFallbackForecast(liquid, investment, state.cashflows).map((point) => ({ month: point.month, flexibleMinor: point.liquid, totalMinor: point.total }));
 }
 
 function CashSafetyChart({ points }: { points: CashSafetyPoint[] }) {
   if (points.length < 2) return <p className="empty">导入至少两个月的资金预测后显示趋势。</p>;
-  const width = 920; const height = 294; const padding = { top: 20, right: 24, bottom: 34, left: 78 };
-  const plotWidth = width - padding.left - padding.right; const balanceHeight = 150; const netBase = padding.top + balanceHeight + 73;
-  const balances = points.map((point) => point.flexibleMinor); const minimum = Math.min(...balances); const maximum = Math.max(...balances); const range = Math.max(1, maximum - minimum);
-  const netChanges = points.map((point, index) => index === 0 ? 0 : point.flexibleMinor - points[index - 1].flexibleMinor); const maxNet = Math.max(1, ...netChanges.map((value) => Math.abs(value)));
+  const width = 920; const height = 282; const padding = { top: 20, right: 24, bottom: 42, left: 78 };
+  const plotWidth = width - padding.left - padding.right; const plotHeight = height - padding.top - padding.bottom;
+  const amounts = points.flatMap((point) => [point.flexibleMinor, point.totalMinor]); const minimum = Math.min(...amounts); const maximum = Math.max(...amounts); const range = Math.max(1, maximum - minimum);
   const x = (index: number) => padding.left + index / (points.length - 1) * plotWidth;
-  const y = (value: number) => padding.top + (maximum - value) / range * balanceHeight;
+  const y = (value: number) => padding.top + (maximum - value) / range * plotHeight;
   const compact = (amount: number) => { const yuan = amount / 100; return yuan >= 100000000 ? `¥${(yuan / 100000000).toFixed(1)}亿` : `¥${Math.round(yuan / 10000)}万`; };
-  return <section className="cash-safety-chart"><div className="cash-safety-legend"><span><i className="cash-safety-line" />灵活资金余额 {money(points.at(-1)?.flexibleMinor ?? 0)}</span><span><i className="cash-safety-bar positive" />月度净流入</span><span><i className="cash-safety-bar negative" />月度净流出</span></div><svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="未来十二个月灵活资金余额和每月净现金流趋势"><line className="funding-trend-grid" x1={padding.left} x2={width - padding.right} y1={padding.top} y2={padding.top} /><line className="funding-trend-grid" x1={padding.left} x2={width - padding.right} y1={padding.top + balanceHeight} y2={padding.top + balanceHeight} /><text className="funding-trend-axis" x={padding.left - 10} y={padding.top + 4} textAnchor="end">{compact(maximum)}</text><text className="funding-trend-axis" x={padding.left - 10} y={padding.top + balanceHeight + 4} textAnchor="end">{compact(minimum)}</text><line className="cash-safety-baseline" x1={padding.left} x2={width - padding.right} y1={netBase} y2={netBase} /><polyline className="cash-safety-balance" points={points.map((point, index) => `${x(index)},${y(point.flexibleMinor)}`).join(" ")} />{points.map((point, index) => <g key={point.month}><circle className="cash-safety-point" cx={x(index)} cy={y(point.flexibleMinor)} r="3.5" /><rect className={netChanges[index] >= 0 ? "cash-safety-net positive" : "cash-safety-net negative"} x={x(index) - 7} y={netChanges[index] >= 0 ? netBase - Math.abs(netChanges[index]) / maxNet * 47 : netBase} width="14" height={Math.abs(netChanges[index]) / maxNet * 47} rx="2" /><text className="funding-trend-axis" x={x(index)} y={height - 13} textAnchor="middle">{index % 2 === 0 || index === points.length - 1 ? point.month.slice(5) : ""}</text></g>)}</svg></section>;
+  return <section className="cash-safety-chart"><div className="cash-safety-legend"><span><i className="cash-safety-line total" />总资金 {money(points.at(-1)?.totalMinor ?? 0)}</span><span><i className="cash-safety-line" />流动资金 {money(points.at(-1)?.flexibleMinor ?? 0)}</span></div><svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="按月总资金和流动资金趋势"><line className="funding-trend-grid" x1={padding.left} x2={width - padding.right} y1={padding.top} y2={padding.top} /><line className="funding-trend-grid" x1={padding.left} x2={width - padding.right} y1={padding.top + plotHeight / 2} y2={padding.top + plotHeight / 2} /><line className="funding-trend-grid" x1={padding.left} x2={width - padding.right} y1={padding.top + plotHeight} y2={padding.top + plotHeight} /><text className="funding-trend-axis" x={padding.left - 10} y={padding.top + 4} textAnchor="end">{compact(maximum)}</text><text className="funding-trend-axis" x={padding.left - 10} y={padding.top + plotHeight + 4} textAnchor="end">{compact(minimum)}</text><polyline className="cash-safety-total" points={points.map((point, index) => `${x(index)},${y(point.totalMinor)}`).join(" ")} /><polyline className="cash-safety-balance" points={points.map((point, index) => `${x(index)},${y(point.flexibleMinor)}`).join(" ")} />{points.map((point, index) => <g key={point.month}><circle className="cash-safety-total-point" cx={x(index)} cy={y(point.totalMinor)} r="3" /><circle className="cash-safety-point" cx={x(index)} cy={y(point.flexibleMinor)} r="3.5" /><text className="funding-trend-axis" x={x(index)} y={height - 16} textAnchor="middle">{index % 2 === 0 || index === points.length - 1 ? point.month.slice(5) : ""}</text></g>)}</svg></section>;
 }
 
 function Accounts({ state, query, onQuery }: { state: AppState; query: string; onQuery: (value: string) => void }) {
