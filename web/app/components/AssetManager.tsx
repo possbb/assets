@@ -261,9 +261,10 @@ function CashSafetyChart({ points }: { points: CashSafetyPoint[] }) {
   const visiblePoints = points.slice(0, selectedRange);
   const width = 920; const height = 370; const padding = { top: 34, right: 24, bottom: 68, left: 78 };
   const plotWidth = width - padding.left - padding.right; const plotHeight = height - padding.top - padding.bottom; const baseline = padding.top + plotHeight;
+  const horizontalInset = 30;
   const maximum = Math.max(1, ...visiblePoints.map((point) => Math.max(point.totalMinor, point.flexibleMinor + point.nonFlexibleMinor)));
   const chartMaximum = maximum * 1.12;
-  const x = (index: number) => padding.left + index / (visiblePoints.length - 1) * plotWidth;
+  const x = (index: number) => padding.left + horizontalInset + index / (visiblePoints.length - 1) * (plotWidth - horizontalInset * 2);
   const y = (value: number) => baseline - Math.max(0, value) / chartMaximum * plotHeight;
   const areaPath = (upper: (point: CashSafetyPoint) => number, lower: (point: CashSafetyPoint) => number) => `M ${visiblePoints.map((point, index) => `${x(index)} ${y(upper(point))}`).join(" L ")} L ${[...visiblePoints].reverse().map((point, index) => `${x(visiblePoints.length - 1 - index)} ${y(lower(point))}`).join(" L ")} Z`;
   const compact = (amount: number) => { const yuan = amount / 100; return yuan >= 100000000 ? `¥${(yuan / 100000000).toFixed(1)}亿` : `¥${Math.round(yuan / 10000)}万`; };
