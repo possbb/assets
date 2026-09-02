@@ -189,9 +189,8 @@ function CashflowPlan({ state, onNavigate }: { state: AppState; onNavigate: (vie
 }
 
 function DashboardAttention({ state, onNavigate }: { state: AppState; onNavigate: (view: View) => void }) {
-  const alerts = getAlerts(state);
-  const expiryAlerts = alerts.filter((alert) => alert.id.startsWith("doc"));
-  return <div className="card"><div className="card-header"><div><h2>到期提醒</h2><p className="footnote">仅提示证照、账户资料等临近到期或已过期项目。</p></div><button className="button" type="button" onClick={() => onNavigate("证照提醒")}>全部提醒</button></div><div className="attention-group">{expiryAlerts.slice(0, 4).map((alert) => <div className={`alert ${alert.level}`} key={alert.id}><strong>{alert.title}</strong>{alert.detail}</div>)}{expiryAlerts.length === 0 && <p className="muted">当前没有临近的到期资料。</p>}</div></div>;
+  const expiringDocuments = state.documents.filter((document) => !document.perpetual && document.expiryDate && (daysUntil(document.expiryDate) ?? 999) <= 90).sort((a, b) => (a.expiryDate ?? "").localeCompare(b.expiryDate ?? ""));
+  return <div className="card"><div className="card-header"><div><h2>到期提醒</h2><p className="footnote">仅提示证照、账户资料等临近到期或已过期项目。</p></div><button className="button" type="button" onClick={() => onNavigate("证照提醒")}>全部提醒</button></div>{expiringDocuments.length ? <div className="table-wrap expiry-reminder-table"><table><thead><tr><th>账户用途描述</th><th>归属人</th><th>到期时间</th></tr></thead><tbody>{expiringDocuments.map((document) => <tr key={document.id}><td>{document.purposeDescription || document.name}</td><td>{document.owner}</td><td className={(daysUntil(document.expiryDate) ?? 0) < 0 ? "negative" : ""}>{document.expiryDate}</td></tr>)}</tbody></table></div> : <p className="muted">当前没有临近的到期资料。</p>}</div>;
 }
 
 type CashSafetyPoint = { month: string; flexibleMinor: number; nonFlexibleMinor: number; totalMinor: number };

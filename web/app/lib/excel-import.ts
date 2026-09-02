@@ -144,7 +144,7 @@ export async function importPersonalAssetWorkbook(file: File): Promise<ExcelImpo
   const cashflows = [...flowRows(incomeRows, matched.income!.name, "流入", forecastStart, review), ...flowRows(expenseRows, matched.expenses!.name, "流出", forecastStart, review)].sort((a, b) => a.dueDate.localeCompare(b.dueDate));
   const documents: DocumentRecord[] = documentRows.map((row) => {
     const values = row.values; const expiryDate = normalizeDate(values["到期时间"]);
-    return { id: createImportId("doc", row.rowNumber), name: `${safeText(values["账户类型"], "资料")} · ${safeText(values["账户机构"], "待确认")}`, type: documentType(values["账户类型"]), owner: owner(values["归属人"]), expiryDate: expiryDate ?? undefined, perpetual: !expiryDate, status: documentStatus(values["账户状态"]), secretReference: "" };
+    return { id: createImportId("doc", row.rowNumber), name: `${safeText(values["账户类型"], "资料")} · ${safeText(values["账户机构"], "待确认")}`, type: documentType(values["账户类型"]), owner: owner(values["归属人"]), purposeDescription: safeText(values["账户用途描述"], ""), expiryDate: expiryDate ?? undefined, perpetual: !expiryDate, status: documentStatus(values["账户状态"]), secretReference: "" };
   });
   const fundingForecast = buildForecast(forecastRows, cashflows, accounts);
   review.warnings.push("已按最新六张工作表和表头导入；未读取或保存备注、账号/卡号、地址、证件号、密码、验证码、邮箱或附件路径。", "负数账户余额按信用卡/应付款保留为负债，不会被当作负现金。", "资金预测由账户期初余额、年度收入、年度支出及资金预测中的手工消费项重新计算，不依赖被忽略的透视表。", "缺少总金额且无法由数量与单价计算的资产已导入为待补录估值，不计入净资产。");
