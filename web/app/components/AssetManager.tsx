@@ -188,8 +188,7 @@ function CashflowPlan({ state, onNavigate }: { state: AppState; onNavigate: (vie
 function DashboardAttention({ state, onNavigate }: { state: AppState; onNavigate: (view: View) => void }) {
   const alerts = getAlerts(state);
   const expiryAlerts = alerts.filter((alert) => alert.id.startsWith("doc"));
-  const taskAlerts = alerts.filter((alert) => !alert.id.startsWith("doc"));
-  return <div className="card"><div className="card-header"><div><h2>待处理事项与到期提醒</h2><p className="footnote">将近期现金事项与证照、账户资料到期集中处理。</p></div><button className="button" type="button" onClick={() => onNavigate("证照提醒")}>全部提醒</button></div><div className="attention-group"><span>待处理事项</span>{taskAlerts.slice(0, 2).map((alert) => <div className={`alert ${alert.level}`} key={alert.id}><strong>{alert.title}</strong>{alert.detail}</div>)}{taskAlerts.length === 0 && <p className="muted">当前没有临近的资金事项。</p>}</div><div className="attention-group"><span>到期提醒</span>{expiryAlerts.slice(0, 2).map((alert) => <div className={`alert ${alert.level}`} key={alert.id}><strong>{alert.title}</strong>{alert.detail}</div>)}{expiryAlerts.length === 0 && <p className="muted">当前没有临近的到期资料。</p>}</div></div>;
+  return <div className="card"><div className="card-header"><div><h2>到期提醒</h2><p className="footnote">仅提示证照、账户资料等临近到期或已过期项目。</p></div><button className="button" type="button" onClick={() => onNavigate("证照提醒")}>全部提醒</button></div><div className="attention-group">{expiryAlerts.slice(0, 4).map((alert) => <div className={`alert ${alert.level}`} key={alert.id}><strong>{alert.title}</strong>{alert.detail}</div>)}{expiryAlerts.length === 0 && <p className="muted">当前没有临近的到期资料。</p>}</div></div>;
 }
 
 type CashSafetyPoint = { month: string; flexibleMinor: number; nonFlexibleMinor: number; totalMinor: number };
