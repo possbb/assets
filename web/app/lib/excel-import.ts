@@ -131,8 +131,8 @@ export async function importPersonalAssetWorkbook(file: File): Promise<ExcelImpo
   const accounts: Account[] = accountRows.flatMap((row) => {
     const amountMinor = moneyMinor(row.values["金额"]);
     if (amountMinor === null) { review.skippedRows.push({ source: sourceRow(matched.accounts!.name, row.rowNumber), reason: "金额为空或公式无法在浏览器中计算" }); return []; }
-    const category = safeText(row.values["资金分类"], "其他"); const item = safeText(row.values["具体项目"], category); const kind = accountKind(category, item, amountMinor);
-    return [{ id: createImportId("acc", row.rowNumber), name: item, institution: "待补录机构", owner: owner(row.values["负责人"]), kind, category, currency: "CNY", liquidity: accountLiquidity(row.values["流动性分类"], kind), balanceMinor: amountMinor, asOfDate: normalizeDate(row.values["统计日期"]) ?? forecastStart, status: "活跃" }];
+    const category = safeText(row.values["资金分类"], "其他"); const item = safeText(row.values["具体项目"], category); const kind = accountKind(category, item, amountMinor); const fundingNature = safeText(row.values["流动性分类"], "").includes("非灵活") ? "非灵活" : "灵活";
+    return [{ id: createImportId("acc", row.rowNumber), name: item, institution: "待补录机构", owner: owner(row.values["负责人"]), kind, category, fundingNature, currency: "CNY", liquidity: accountLiquidity(row.values["流动性分类"], kind), balanceMinor: amountMinor, asOfDate: normalizeDate(row.values["统计日期"]) ?? forecastStart, status: "活跃" }];
   });
   const assets: Asset[] = assetRows.map((row) => {
     const stated = moneyMinor(row.values["总金额"]); const quantity = numberValue(row.values["数量"]); const unitPrice = numberValue(row.values["单价"]); const grossValueMinor = stated ?? (quantity !== null && unitPrice !== null ? Math.round(quantity * unitPrice * 100) : 0);

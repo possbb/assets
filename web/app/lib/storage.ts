@@ -5,6 +5,7 @@ export type FlowType = "收入" | "支出" | "内部转账";
 export type Account = {
   id: string; name: string; institution: string; owner: string; kind: AccountKind;
   category?: string;
+  fundingNature?: "灵活" | "非灵活";
   currency: string; liquidity: Liquidity; balanceMinor: number; asOfDate: string;
   status: "活跃" | "冻结" | "关闭";
 };

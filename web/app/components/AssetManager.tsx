@@ -158,16 +158,18 @@ function Dashboard({ state, onNavigate }: { state: AppState; onNavigate: (view: 
     return groups;
   }, new Map<string, number>()).entries()].sort((a, b) => b[1] - a[1]);
   const fixedAssetNet = fixedAssetGroups.reduce((sum, [, amount]) => sum + amount, 0);
-  const fundingCategoryGroups = [...state.accounts.reduce((groups, account) => {
-    const category = account.category;
-    if (!category) return groups;
-    groups.set(category, (groups.get(category) ?? 0) + account.balanceMinor);
-    return groups;
-  }, new Map<string, number>()).entries()].sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
+  const fundingCategoryGroups = (["灵活", "非灵活"] as const).map((fundingNature) => ({
+    fundingNature,
+    rows: [...state.accounts.filter((account) => account.category && (account.fundingNature ?? (account.liquidity === "低" ? "非灵活" : "灵活")) === fundingNature).reduce((groups, account) => {
+      const category = account.category!;
+      groups.set(category, (groups.get(category) ?? 0) + account.balanceMinor);
+      return groups;
+    }, new Map<string, number>()).entries()].sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])),
+  }));
   return <>
     <section className="overview-hero"><div><div className="eyebrow">资金安全视图</div><h2>当前资金与未来现金流</h2><p>账户快照截至 {accountAsOf} · 预测覆盖至 {forecastEnd} · 实际流水不会被预测覆盖。</p></div><button className="button" type="button" onClick={() => onNavigate("资金预测")}>查看完整预测</button></section>
     <section className="overview-summary-grid" aria-label="当前资金与资产摘要">
-      <OverviewSnapshot title="当前资金" value={latestActual ? money(latestActual.totalMinor) : "—"} detail={latestActual ? `资金预测 · ACT · ${latestActual.month}（最新实际期间）` : "导入资金预测中的 ACT 数据后显示"} rows={[{ label: "灵活资金", value: latestActual ? money(latestActual.flexibleMinor) : "—" }, { label: "非灵活资金", value: latestActual ? money(latestActual.nonFlexibleMinor) : "—" }]} sections={fundingCategoryGroups.length ? [{ title: "", rows: fundingCategoryGroups.map(([label, amount]) => ({ label, value: money(amount), tone: amount < 0 ? "negative" as const : undefined })) }] : undefined} />
+      <OverviewSnapshot title="当前资金" value={latestActual ? money(latestActual.totalMinor) : "—"} detail={latestActual ? `资金预测 · ACT · ${latestActual.month}（最新实际期间）` : "导入资金预测中的 ACT 数据后显示"} rows={[{ label: "灵活资金", value: latestActual ? money(latestActual.flexibleMinor) : "—" }, { label: "非灵活资金", value: latestActual ? money(latestActual.nonFlexibleMinor) : "—" }]} sections={fundingCategoryGroups.map((group) => ({ title: "", className: group.fundingNature === "灵活" ? "flexible" : "non-flexible", rows: group.rows.map(([label, amount]) => ({ label, value: money(amount), tone: amount < 0 ? "negative" as const : undefined })) }))} />
       <OverviewSnapshot title="固定资产和股票期权" value={money(fixedAssetNet)} detail="仅统计“固定资产和股票期权”工作表导入的资产；按资产分类汇总" rows={fixedAssetGroups.slice(0, 3).map(([label, amount]) => ({ label, value: money(amount) }))} />
     </section>
     <section className="overview-grid"><div className="card overview-trend-card"><div className="card-header"><div><h2>按月资金趋势</h2><p className="footnote">灵活资金与非灵活资金按月连续堆积展示；悬停图形可查看资金预测合计与明细。</p></div></div><CashSafetyChart points={points} /></div><CashflowPlan state={state} onNavigate={onNavigate} /></section>
@@ -175,10 +177,7 @@ function Dashboard({ state, onNavigate }: { state: AppState; onNavigate: (view: 
   </>;
 }
 
-function OverviewSnapshot({ title, value, detail, rows, sections }: { title: string; value: string; detail: string; rows: { label: string; value: string; tone?: "warn" | "negative" }[]; sections?: { title: string; rows: { label: string; value: string; tone?: "warn" | "negative" }[] }[] }) {
-  return <article className="card overview-snapshot"><div className="overview-snapshot-main"><span>{title}</span><strong className="money">{value}</strong><p>{detail}</p></div><div className="overview-snapshot-rows">{rows.map((row) => <div className="overview-snapshot-row" key={row.label}><span>{row.label}</span><strong className={`money ${row.tone ?? ""}`}>{row.value}</strong></div>)}</div>{sections?.map((section) => <div className="overview-snapshot-section" key={section.title}>{section.title && <span className="overview-snapshot-section-title">{section.title}</span>}{section.rows.map((row) => <div className="overview-snapshot-row" key={row.label}><span>{row.label}</span><strong className={`money ${row.tone ?? ""}`}>{row.value}</strong></div>)}</div>)}</article>;
-}
-
+function OverviewSnapshot({ title, value, detail, rows, sections }: { title: string; value: string; detail: string; rows: { label: string; value: string; tone?: "warn" | "negative" }[]; sections?: { title: string; className?: string; rows: { label: string; value: string; tone?: "warn" | "negative" }[] }[] }) { return <article className="card overview-snapshot"><div className="overview-snapshot-main"><span>{title}</span><strong className="money">{value}</strong><p>{detail}</p></div><div className="overview-snapshot-rows">{rows.map((row) => <div className="overview-snapshot-row" key={row.label}><span>{row.label}</span><strong className={`money ${row.tone ?? ""}`}>{row.value}</strong></div>)}</div>{sections && <div className="overview-snapshot-sections">{sections.map((section, index) => <div className={`overview-snapshot-section ${section.className ?? ""}`} key={`${section.title}-${index}`}>{section.title && <span className="overview-snapshot-section-title">{section.title}</span>}{section.rows.map((row) => <div className="overview-snapshot-row" key={row.label}><span>{row.label}</span><strong className={`money ${row.tone ?? ""}`}>{row.value}</strong></div>)}</div>)}</div>}</article>; }
 function CashflowPlan({ state, onNavigate }: { state: AppState; onNavigate: (view: View) => void }) {
   const flows = state.cashflows.filter((flow) => flow.status === "待发生" && (daysUntil(flow.dueDate) ?? 999) >= 0 && (daysUntil(flow.dueDate) ?? 999) <= 90).sort((a, b) => a.dueDate.localeCompare(b.dueDate));
   const inflow = flows.filter((flow) => flow.direction === "流入").reduce((sum, flow) => sum + flow.amountMinor, 0);
