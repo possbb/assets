@@ -85,7 +85,7 @@ function ownership(value: unknown) { const match = safeText(value, "").match(/(\
 function owner(value: unknown) { return safeText(value, "家庭").replace(/\s*\d+\s*\/\s*\d+\s*$/, ""); }
 function fundingBucket(value: unknown): "灵活" | "非灵活" { return safeText(value, "").includes("非灵活") ? "非灵活" : "灵活"; }
 function documentType(source: unknown): DocumentRecord["type"] { const text = safeText(source, "").toLowerCase(); return text.includes("证") || text.includes("visa") ? "证照" : "账户资料"; }
-function documentStatus(source: unknown): DocumentRecord["status"] { const text = safeText(source, ""); return text.includes("活跃") || text.includes("维持") ? "有效" : "待复核"; }
+function documentStatus(source: unknown): DocumentRecord["status"] { const text = safeText(source, ""); return text.includes("保留但不使用") ? "保留但不使用" : text.includes("活跃") || text.includes("维持") ? "有效" : "待复核"; }
 
 function flowRows(rows: SheetRow[], sheet: string, direction: ExpectedCashflow["direction"], forecastStart: string, review: ImportReview) {
   return rows.flatMap((row) => {

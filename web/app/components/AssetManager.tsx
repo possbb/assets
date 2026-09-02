@@ -126,17 +126,18 @@ export function AssetManager() {
         }
         if (!source) return document;
         consumed.add(source.id);
-        const next = {
-          ...document,
-          purposeDescription: document.purposeDescription || source.purposeDescription,
-          purposeCountry: document.purposeCountry || source.purposeCountry,
-          purposeCategory: document.purposeCategory || source.purposeCategory,
-        };
-        if (next.purposeDescription !== document.purposeDescription || next.purposeCountry !== document.purposeCountry || next.purposeCategory !== document.purposeCategory) supplemented += 1;
+          const next = {
+            ...document,
+            purposeDescription: document.purposeDescription || source.purposeDescription,
+            purposeCountry: document.purposeCountry || source.purposeCountry,
+            purposeCategory: document.purposeCategory || source.purposeCategory,
+            status: source.status === "保留但不使用" ? source.status : document.status,
+          };
+          if (next.purposeDescription !== document.purposeDescription || next.purposeCountry !== document.purposeCountry || next.purposeCategory !== document.purposeCategory || next.status !== document.status) supplemented += 1;
         return next;
       });
       if (supplemented) setState({ ...state, documents, updatedAt: new Date().toISOString() });
-      setNotice(supplemented ? `已补齐 ${supplemented} 项证照的账户用途信息；其他账本数据未改动。` : "未找到可匹配的证照记录，未修改当前账本。请确认选择的是导入时使用的同一份 Excel。");
+      setNotice(supplemented ? `已补齐 ${supplemented} 项证照的账户用途信息与提醒状态；其他账本数据未改动。` : "未找到可匹配的证照记录，未修改当前账本。请确认选择的是导入时使用的同一份 Excel。");
     } catch (error) {
       setNotice(error instanceof Error ? `证照字段补齐失败：${error.message}` : "证照字段补齐失败，请确认 Excel 格式。");
     }
@@ -233,7 +234,7 @@ function CashflowPlan({ state, onNavigate }: { state: AppState; onNavigate: (vie
 }
 
 function DashboardAttention({ state, onNavigate }: { state: AppState; onNavigate: (view: View) => void }) {
-  const expiringDocuments = state.documents.filter((document) => !document.perpetual && document.expiryDate && (daysUntil(document.expiryDate) ?? 999) <= 90).sort((a, b) => (a.expiryDate ?? "").localeCompare(b.expiryDate ?? ""));
+  const expiringDocuments = state.documents.filter((document) => document.status !== "保留但不使用" && !document.perpetual && document.expiryDate && (daysUntil(document.expiryDate) ?? 999) <= 90).sort((a, b) => (a.expiryDate ?? "").localeCompare(b.expiryDate ?? ""));
   return <div className="card"><div className="card-header"><div><h2>到期提醒</h2><p className="footnote">仅提示证照、账户资料等临近到期或已过期项目。</p></div><button className="button" type="button" onClick={() => onNavigate("证照提醒")}>全部提醒</button></div>{expiringDocuments.length ? <div className="table-wrap expiry-reminder-table"><table><thead><tr><th>账户用途描述</th><th>账户用途国家</th><th>账户用途分类</th><th>归属人</th><th>到期时间</th></tr></thead><tbody>{expiringDocuments.map((document) => <tr key={document.id}><td>{document.purposeDescription || document.name}</td><td>{document.purposeCountry || "—"}</td><td>{document.purposeCategory || "—"}</td><td>{document.owner}</td><td className={(daysUntil(document.expiryDate) ?? 0) < 0 ? "negative" : ""}>{document.expiryDate}</td></tr>)}</tbody></table></div> : <p className="muted">当前没有临近的到期资料。</p>}</div>;
 }
 
