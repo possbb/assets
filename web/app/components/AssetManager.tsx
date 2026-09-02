@@ -104,6 +104,44 @@ export function AssetManager() {
     }
   };
 
+  const supplementDocumentMetadata = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    try {
+      const { appState } = await importPersonalAssetWorkbook(file);
+      if (!state) return;
+      let supplemented = 0;
+      const sourceById = new Map(appState.documents.map((document) => [document.id, document]));
+      const sourceByIdentity = new Map<string, DocumentRecord[]>();
+      appState.documents.forEach((document) => {
+        const key = `${document.name}|${document.owner}`;
+        sourceByIdentity.set(key, [...(sourceByIdentity.get(key) ?? []), document]);
+      });
+      const consumed = new Set<string>();
+      const documents = state.documents.map((document) => {
+        let source = sourceById.get(document.id);
+        if (!source || source.name !== document.name || source.owner !== document.owner) {
+          source = sourceByIdentity.get(`${document.name}|${document.owner}`)?.find((candidate) => !consumed.has(candidate.id));
+        }
+        if (!source) return document;
+        consumed.add(source.id);
+        const next = {
+          ...document,
+          purposeDescription: document.purposeDescription || source.purposeDescription,
+          purposeCountry: document.purposeCountry || source.purposeCountry,
+          purposeCategory: document.purposeCategory || source.purposeCategory,
+        };
+        if (next.purposeDescription !== document.purposeDescription || next.purposeCountry !== document.purposeCountry || next.purposeCategory !== document.purposeCategory) supplemented += 1;
+        return next;
+      });
+      if (supplemented) setState({ ...state, documents, updatedAt: new Date().toISOString() });
+      setNotice(supplemented ? `已补齐 ${supplemented} 项证照的账户用途信息；其他账本数据未改动。` : "未找到可匹配的证照记录，未修改当前账本。请确认选择的是导入时使用的同一份 Excel。");
+    } catch (error) {
+      setNotice(error instanceof Error ? `证照字段补齐失败：${error.message}` : "证照字段补齐失败，请确认 Excel 格式。");
+    }
+  };
+
   if (!state || !metrics) return <main className="main"><p className="muted">正在打开本地账本…</p></main>;
   const defaultDialog: DialogKind = view === "账户" ? "账户" : view === "流水" ? "流水" : view === "资产负债" ? "资产" : view === "资金预测" ? "预测" : "证照";
 
@@ -116,7 +154,7 @@ export function AssetManager() {
     <main className="main">
       <header className="topbar">
         <div><div className="eyebrow">家庭资产管理 · 本地 MVP</div><h1>{view}</h1><p className="subtitle">最后更新：{new Intl.DateTimeFormat("zh-CN", { dateStyle: "medium", timeStyle: "short" }).format(new Date(state.updatedAt))}</p></div>
-        <div className="actions"><button className="button" type="button" onClick={exportData}>导出备份</button><label className="button">导入备份<input aria-label="导入备份文件" type="file" accept="application/json" hidden onChange={importData} /></label><label className="button">导入 Excel<input aria-label="导入 Excel 数据文件" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden onChange={importExcel} /></label><button className="button button-primary" type="button" onClick={() => setDialog(defaultDialog)}>新增记录</button></div>
+        <div className="actions"><button className="button" type="button" onClick={exportData}>导出备份</button><label className="button">导入备份<input aria-label="导入备份文件" type="file" accept="application/json" hidden onChange={importData} /></label><label className="button">导入 Excel<input aria-label="导入 Excel 数据文件" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden onChange={importExcel} /></label><label className="button">补齐证照字段<input aria-label="补齐证照字段 Excel 文件" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden onChange={supplementDocumentMetadata} /></label><button className="button button-primary" type="button" onClick={() => setDialog(defaultDialog)}>新增记录</button></div>
       </header>
       {notice && <div className="alert"><strong>提示</strong>{notice}<button className="button" type="button" onClick={() => setNotice("")}>知道了</button></div>}
       {view === "总览" && <Dashboard state={state} onNavigate={setView} />}
