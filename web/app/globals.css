@@ -36,3 +36,34 @@ button,input,select,textarea { font:inherit; } button { cursor:pointer; }
 @media (max-width:620px) { .mobile-axis-label-hidden { display:none; } }
 .expiry-reminder-table table { min-width:720px; }.expiry-reminder-table th,.expiry-reminder-table td { padding:9px 12px; }.expiry-reminder-table th:first-child,.expiry-reminder-table td:first-child { width:34%; }.expiry-reminder-table th:nth-child(2),.expiry-reminder-table td:nth-child(2) { width:17%; }.expiry-reminder-table th:nth-child(3),.expiry-reminder-table td:nth-child(3) { width:19%; }.expiry-reminder-table th:nth-child(4),.expiry-reminder-table td:nth-child(4) { width:14%; }.expiry-reminder-table th:last-child,.expiry-reminder-table td:last-child { width:16%; white-space:nowrap; }
 .fixed-asset-group { align-content:start !important; gap:5px; }.fixed-asset-group-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; }.expand-assets { border:1px solid #d6e4dd; border-radius:999px; padding:2px 7px; background:#fff; color:#35645a; font-size:10px; font-weight:700; white-space:nowrap; }.expand-assets:hover { border-color:#8eb9aa; }.fixed-asset-details { display:grid; gap:5px; margin-top:4px; padding-top:6px; border-top:1px dashed #d9e5df; }.fixed-asset-details > div { display:flex; justify-content:space-between; gap:8px; font-size:11px; }.fixed-asset-details > div span { color:#596b65; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }.fixed-asset-details .money { font-size:11px; }
+
+@media (max-width:620px) {
+  html,body { width:100%; max-width:100%; overflow-x:hidden; }
+  .app-shell,.main { min-width:0; width:100%; max-width:none; }
+  .main { padding:18px 12px 36px; }
+  .sidebar { padding:12px; }
+  .brand-name { font-size:21px; }
+  .nav button { min-width:0; padding:9px 6px; font-size:12px; }
+  .topbar { margin-bottom:18px; }
+  .actions { gap:6px; }
+  .actions .button { padding:8px 9px; font-size:12px; }
+  .card { padding:15px; border-radius:12px; }
+  .card-header { align-items:flex-start; margin-bottom:12px; }
+  .card h2 { font-size:16px; }
+  .footnote { font-size:11px; }
+  .overview-grid { gap:12px; margin-top:12px; }
+  .overview-snapshot-main { min-height:0; padding:18px; }
+  .overview-snapshot-main > strong { font-size:30px; }
+  .cash-safety-legend { gap:8px 12px; }
+  .cash-safety-hint { display:none !important; }
+  .funding-range { margin-left:0; }
+  .cashflow-plan-summary { padding:10px; gap:6px; }
+  .cashflow-plan-summary span { font-size:10px; }
+  .cashflow-plan-summary strong { font-size:13px; }
+  .funding-plan-list .forecast-row,.funding-plan-list .forecast-row-header { grid-template-columns:64px minmax(0,1fr) 82px; gap:4px 8px; }
+  .funding-plan-list .forecast-row { padding:10px 0; }
+  .funding-plan-list .forecast-row > :nth-child(2) { overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+  .funding-plan-list .forecast-row > :nth-child(5) { font-size:13px; }
+  .table-wrap { max-width:100%; -webkit-overflow-scrolling:touch; }
+  .expiry-reminder-table { margin:0 -15px; padding:0 15px; }
+}
