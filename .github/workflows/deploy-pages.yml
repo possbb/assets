@@ -41,6 +41,8 @@ jobs:
         env:
           GITHUB_PAGES: "true"
         run: pnpm run build
+      - name: Compose personal homepage and finance page
+        run: node personal-hub/build-pages.mjs
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
         with:
