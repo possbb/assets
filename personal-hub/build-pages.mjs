@@ -8,6 +8,8 @@ const output = path.resolve(here, '../web/dist');
 const finance = await readFile(path.join(output, 'index.html'), 'utf8');
 if (!finance.includes('<div id="root"></div>')) throw new Error('Build the finance app before composing Pages.');
 await rename(path.join(output, 'index.html'), path.join(output, 'finance.html'));
+await mkdir(path.join(output, 'assets'), { recursive: true });
+await writeFile(path.join(output, 'assets', 'index.html'), finance);
 let html = await readFile(path.join(here, 'dist/index.html'), 'utf8');
 html = html.replace('href="https://possbb.github.io/assets/finance.html"', 'href="./finance.html"');
 html = html.replace(/<button\b([^>]*\bdata-app="([^"]+)"[^>]*)>([\s\S]*?)<\/button>/g, (_, attributes, app, content) => {
@@ -28,4 +30,4 @@ await cp(path.join(here, 'dist/images'), path.join(output, 'images'), { recursiv
 if ((html.match(/<article class="card">/g) || []).length !== 12 || html.includes('data-app=')) {
   throw new Error('Unexpected hosted navigation content');
 }
-console.log('Pages ready: personal homepage + finance.html; 12 cards preserved.');
+console.log('Pages ready: personal homepage + finance.html + /assets/ finance entry; 12 cards preserved.');
