@@ -27,7 +27,7 @@ await writeFile(path.join(output, 'index.html'), html);
 await cp(path.join(here, 'dist/style.css'), path.join(output, 'style.css'));
 await mkdir(path.join(output, 'images'), { recursive: true });
 await cp(path.join(here, 'dist/images'), path.join(output, 'images'), { recursive: true });
-if ((html.match(/<article class="card">/g) || []).length !== 12 || html.includes('data-app=')) {
+if ((html.match(/<article class="card">/g) || []).length !== 13 || html.includes('data-app=')) {
   throw new Error('Unexpected hosted navigation content');
 }
-console.log('Pages ready: personal homepage + finance.html + /assets/ finance entry; 12 cards preserved.');
+console.log('Pages ready: personal homepage + finance.html + /assets/ finance entry; 13 cards preserved.');
