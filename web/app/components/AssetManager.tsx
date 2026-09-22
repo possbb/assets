@@ -7,10 +7,11 @@ import {
 } from "../lib/storage";
 import { importPersonalAssetWorkbook } from "../lib/excel-import";
 import { readSharedState, replaceSharedState } from "../lib/remote-storage";
+import { QuickLookup, SearchBox, matchesQuery } from "./QuickLookup";
 
-type View = "总览" | "账户" | "流水" | "资产负债" | "资金预测" | "证照提醒" | "数据安全";
+type View = "总览" | "快速查询" | "账户" | "流水" | "资产负债" | "资金预测" | "证照提醒" | "数据安全";
 type DialogKind = "账户" | "流水" | "资产" | "预测" | "证照" | null;
-const views: View[] = ["总览", "账户", "流水", "资产负债", "资金预测", "证照提醒", "数据安全"];
+const views: View[] = ["总览", "快速查询", "账户", "流水", "资产负债", "资金预测", "证照提醒", "数据安全"];
 const today = () => new Date().toISOString().slice(0, 10);
 const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 const parseMoney = (value: string) => Math.round((Number(value.replace(/,/g, "")) || 0) * 100);
@@ -159,9 +160,10 @@ export function AssetManager() {
       </header>
       {notice && <div className="alert"><strong>提示</strong>{notice}<button className="button" type="button" onClick={() => setNotice("")}>知道了</button></div>}
       {view === "总览" && <Dashboard state={state} onNavigate={setView} />}
+      {view === "快速查询" && <QuickLookup state={state} />}
       {view === "账户" && <Accounts state={state} query={query} onQuery={setQuery} />}
       {view === "流水" && <Transactions state={state} query={query} onQuery={setQuery} />}
-      {view === "资产负债" && <Assets state={state} />}
+      {view === "资产负债" && <><SearchBox query={query} onQuery={setQuery} label="搜索资产负债" placeholder="资产名称、归属人、资产分类、状态" /><p className="footnote">显示 {state.assets.filter((asset) => matchesQuery(query, [asset.name, asset.owner, asset.type, asset.category, asset.status, asset.currency])).length} / {state.assets.length} 项资产；下方合计为搜索结果合计。</p><Assets state={{ ...state, assets: state.assets.filter((asset) => matchesQuery(query, [asset.name, asset.owner, asset.type, asset.category, asset.status, asset.currency])) }} /></>}
       {view === "资金预测" && <Forecast state={state} />}
       {view === "证照提醒" && <Documents state={state} />}
       {view === "数据安全" && <Security reset={() => { if (window.confirm("将清除当前浏览器中的数据并恢复示例。是否继续？")) { setState(seedState()); setNotice("已恢复示例数据。"); } }} />}
