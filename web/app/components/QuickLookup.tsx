@@ -53,17 +53,17 @@ export function QuickLookup({ state }: { state: AppState }) {
         const parts = d.name.split(" · ");
         const remaining = d.expiryDate ? Math.ceil((new Date(`${d.expiryDate}T00:00:00`).getTime() - new Date().setHours(0, 0, 0, 0)) / 86400000) : null;
         const fields = [
-          ["资料名称", d.name], ["资料类型", d.type],
+          ["归属人", d.owner],
           ["银行卡号 / 账号", d.accountNumber],
           ["账户类型", d.accountType || (parts.length > 1 ? parts[0] : "未填写")],
           ["账户机构", documentInstitution(d)],
-          ["归属人", d.owner], ["账户用途描述", d.purposeDescription],
+          ["账户用途描述", d.purposeDescription],
           ["账户用途国家", d.purposeCountry], ["账户用途分类", d.purposeCategory],
           ["原始账户状态", d.sourceStatus], ["资料状态", d.status],
           ["到期日期", d.expiryDate || (d.perpetual ? "长期有效（按当前记录）" : "未填写")],
           ["到期提醒", d.status === "保留但不使用" ? "已忽略提醒" : remaining === null ? "无到期日" : remaining < 0 ? `已过期 ${-remaining} 天` : remaining === 0 ? "今天到期" : `剩余 ${remaining} 天`],
         ];
-        return <article key={d.id} style={statusColors(d.sourceStatus)}><h4>{d.name || "未填写资料名称"}</h4><span className="chip">{d.sourceStatus?.trim() || "原始账户状态未填写"}</span><dl>{fields.map(([label, value]) => <div className="lookup-field" key={label}><dt>{label}</dt><dd>{value || "未填写"}</dd></div>)}</dl></article>;
+        return <article key={d.id} style={statusColors(d.sourceStatus)}><div className="lookup-card-heading"><h4>{d.name || "未填写资料名称"}</h4><span className="chip lookup-type-tag">{d.type || "未分类"}</span></div><span className="chip">{d.sourceStatus?.trim() || "原始账户状态未填写"}</span><dl>{fields.map(([label, value]) => <div className="lookup-field" key={label}><dt>{label}</dt><dd>{value || "未填写"}</dd></div>)}</dl></article>;
       })}
     </div></section>)}
     {!count && <p className="empty">没有匹配结果，请调整关键词或筛选条件，也可点击“重置全部”。</p>}
