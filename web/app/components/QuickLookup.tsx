@@ -50,13 +50,10 @@ export function QuickLookup({ state }: { state: AppState }) {
     <h3 className="lookup-group-title">{type}<span>{documents.filter((document) => (document.type || "未分类") === type).length} 项</span></h3>
     <div className="lookup-results">
       {documents.filter((document) => (document.type || "未分类") === type).map((d) => {
-        const parts = d.name.split(" · ");
         const remaining = d.expiryDate ? Math.ceil((new Date(`${d.expiryDate}T00:00:00`).getTime() - new Date().setHours(0, 0, 0, 0)) / 86400000) : null;
         const fields = [
           ["归属人", d.owner],
           ["银行卡号 / 账号", d.accountNumber],
-          ["账户类型", d.accountType || (parts.length > 1 ? parts[0] : "未填写")],
-          ["账户机构", documentInstitution(d)],
           ["账户用途描述", d.purposeDescription],
           ["账户用途国家", d.purposeCountry], ["账户用途分类", d.purposeCategory],
           ["原始账户状态", d.sourceStatus], ["资料状态", d.status],
