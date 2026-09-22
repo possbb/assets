@@ -11,6 +11,7 @@
 .lookup-results dl { display:grid; grid-template-columns:110px minmax(0,1fr); gap:8px; font-size:12px; margin-bottom:0; }
 .lookup-results dt { color:var(--muted); }
 .lookup-results dd { margin:0; overflow-wrap:anywhere; }
+.lookup-field { display:contents; }
 
 :root { --ink:#172027; --muted:#65717a; --line:#dbe3df; --canvas:#f1f5f1; --card:#fff; --forest:#1b6158; --forest-dark:#10463f; --amber:#b87916; --danger:#b74a3b; --shadow:0 12px 32px rgba(32,60,52,.08); }
 * { box-sizing:border-box; }

@@ -147,6 +147,12 @@ export async function importPersonalAssetWorkbook(file: File): Promise<ExcelImpo
     return { id: createImportId("doc", row.rowNumber), name: `${safeText(values["账户类型"], "资料")} · ${safeText(values["账户机构"], "待确认")}`, type: documentType(values["账户类型"]), owner: owner(values["归属人"]), purposeCountry: safeText(values["账户用途国家"], ""), purposeCategory: safeText(values["账户用途分类"], ""), purposeDescription: safeText(values["账户用途描述"], ""), expiryDate: expiryDate ?? undefined, perpetual: !expiryDate, status: documentStatus(values["账户状态"]), secretReference: "" };
   });
   const fundingForecast = buildForecast(forecastRows, cashflows, accounts);
+  documents.forEach((document, index) => {
+    const values = documentRows[index].values;
+    document.accountType = safeText(values["账户类型"], "");
+    document.institution = safeText(values["账户机构"], "");
+    document.sourceStatus = safeText(values["账户状态"], "");
+  });
   review.warnings.push("已按最新六张工作表和表头导入；未读取或保存备注、账号/卡号、地址、证件号、密码、验证码、邮箱或附件路径。", "负数账户余额按信用卡/应付款保留为负债，不会被当作负现金。", "资金预测由账户期初余额、年度收入、年度支出及资金预测中的手工消费项重新计算，不依赖被忽略的透视表。", "缺少总金额且无法由数量与单价计算的资产已导入为待补录估值，不计入净资产。");
   return { appState: { version: 1, accounts, transactions: [], assets, cashflows, documents, fundingForecast, updatedAt: new Date().toISOString() }, review };
 }

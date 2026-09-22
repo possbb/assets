@@ -14,18 +14,30 @@ export function SearchBox({ query, onQuery, label, placeholder }: { query: strin
 
 export function QuickLookup({ state }: { state: AppState }) {
   const [query, setQuery] = useState("");
-  const [scope, setScope] = useState("全部");
-  const accounts = state.accounts.filter((a) => matchesQuery(query, [a.name, a.institution, a.owner, a.kind, a.category, a.status, a.currency]));
-  const documents = state.documents.filter((d) => matchesQuery(query, [d.name, d.owner, d.type, d.purposeDescription, d.purposeCountry, d.purposeCategory, d.status, d.expiryDate]));
-  const count = (scope !== "证照与账户资料" ? accounts.length : 0) + (scope !== "资金账户" ? documents.length : 0);
+  const documents = state.documents.filter((d) => matchesQuery(query, [d.name, d.owner, d.type, d.accountType, d.institution, d.sourceStatus, d.purposeDescription, d.purposeCountry, d.purposeCategory, d.status, d.expiryDate]));
+  const count = documents.length;
   return <section className="card">
-    <h2>银行账户与证照快速查询</h2>
-    <p className="footnote">搜索已导入的账户和资料；多个关键词用空格分隔，可组合查询姓名、银行、用途、国家或到期日期。</p>
+    <h2>证照与银行账户资料查询</h2>
+    <p className="footnote">查询已导入的证照与银行账户资料；多个关键词用空格分隔。</p>
     <SearchBox query={query} onQuery={setQuery} label="查询关键词" placeholder="例如：建设银行、护照、姓名 国家" />
-    <div className="lookup-tabs">{["全部", "资金账户", "证照与账户资料"].map((value) => <button className="button" key={value} aria-pressed={scope === value} onClick={() => setScope(value)}>{value}</button>)}<span role="status">共 {count} 条结果</span></div>
+    <div className="lookup-tabs"><span role="status">共 {count} 条结果</span></div>
     <div className="lookup-results">
-      {scope !== "证照与账户资料" && accounts.map((a) => <article key={`account-${a.id}`}><h3>{a.name}</h3><span className="chip">资金账户 · {a.kind}</span><dl><dt>机构 / 归属人</dt><dd>{a.institution || "—"} / {a.owner || "—"}</dd><dt>资金分类</dt><dd>{a.category || "—"}</dd><dt>余额</dt><dd>{new Intl.NumberFormat("zh-CN", { style: "currency", currency: a.currency }).format(a.balanceMinor / 100)}</dd><dt>状态 / 更新日期</dt><dd>{a.status} / {a.asOfDate}</dd></dl></article>)}
-      {scope !== "资金账户" && documents.map((d) => <article key={`document-${d.id}`}><h3>{d.purposeDescription || d.name}</h3><span className="chip">{d.type}</span><dl><dt>资料名称</dt><dd>{d.name}</dd><dt>归属人</dt><dd>{d.owner || "—"}</dd><dt>国家 / 用途分类</dt><dd>{d.purposeCountry || "—"} / {d.purposeCategory || "—"}</dd><dt>到期日期</dt><dd>{d.perpetual ? "长期有效" : d.expiryDate || "未填写"}</dd><dt>账户 / 资料状态</dt><dd>{d.status}</dd></dl></article>)}
+      {documents.map((d) => {
+        const parts = d.name.split(" · ");
+        const remaining = d.expiryDate ? Math.ceil((new Date(`${d.expiryDate}T00:00:00`).getTime() - new Date().setHours(0, 0, 0, 0)) / 86400000) : null;
+        const fields = [
+          ["资料名称", d.name], ["资料类型", d.type],
+          ["账户类型", d.accountType || (parts.length > 1 ? parts[0] : "未填写")],
+          ["账户机构", d.institution || (parts.length > 1 ? parts.slice(1).join(" · ") : "未填写")],
+          ["归属人", d.owner], ["账户用途描述", d.purposeDescription],
+          ["账户用途国家", d.purposeCountry], ["账户用途分类", d.purposeCategory],
+          ["原始账户状态", d.sourceStatus], ["资料状态", d.status],
+          ["到期日期", d.expiryDate || (d.perpetual ? "长期有效（按当前记录）" : "未填写")],
+          ["到期提醒", d.status === "保留但不使用" ? "已忽略提醒" : remaining === null ? "无到期日" : remaining < 0 ? `已过期 ${-remaining} 天` : remaining === 0 ? "今天到期" : `剩余 ${remaining} 天`],
+          ["保险库关联", d.secretReference ? "已关联外部保险库" : "未关联"],
+        ];
+        return <article key={d.id}><h3>{d.purposeDescription || d.name}</h3><span className="chip">{d.type}</span><dl>{fields.map(([label, value]) => <div className="lookup-field" key={label}><dt>{label}</dt><dd>{value || "未填写"}</dd></div>)}</dl></article>;
+      })}
     </div>
     {!count && <p className="empty">没有匹配结果，请减少关键词或清空搜索。</p>}
   </section>;

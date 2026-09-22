@@ -129,12 +129,15 @@ export function AssetManager() {
         consumed.add(source.id);
           const next = {
             ...document,
+            accountType: document.accountType || source.accountType,
+            institution: document.institution || source.institution,
+            sourceStatus: document.sourceStatus || source.sourceStatus,
             purposeDescription: document.purposeDescription || source.purposeDescription,
             purposeCountry: document.purposeCountry || source.purposeCountry,
             purposeCategory: document.purposeCategory || source.purposeCategory,
             status: source.status === "保留但不使用" ? source.status : document.status,
           };
-          if (next.purposeDescription !== document.purposeDescription || next.purposeCountry !== document.purposeCountry || next.purposeCategory !== document.purposeCategory || next.status !== document.status) supplemented += 1;
+          if (JSON.stringify(next) !== JSON.stringify(document)) supplemented += 1;
         return next;
       });
       if (supplemented) setState({ ...state, documents, updatedAt: new Date().toISOString() });
