@@ -36,7 +36,7 @@ export function QuickLookup({ state }: { state: AppState }) {
           ["到期提醒", d.status === "保留但不使用" ? "已忽略提醒" : remaining === null ? "无到期日" : remaining < 0 ? `已过期 ${-remaining} 天` : remaining === 0 ? "今天到期" : `剩余 ${remaining} 天`],
           ["保险库关联", d.secretReference ? "已关联外部保险库" : "未关联"],
         ];
-        return <article key={d.id}><h3>{d.purposeDescription || d.name}</h3><span className="chip">{d.type}</span><dl>{fields.map(([label, value]) => <div className="lookup-field" key={label}><dt>{label}</dt><dd>{value || "未填写"}</dd></div>)}</dl></article>;
+        return <article key={d.id}><h3>{d.name || "未填写资料名称"}</h3><span className="chip">{d.type}</span><dl>{fields.map(([label, value]) => <div className="lookup-field" key={label}><dt>{label}</dt><dd>{value || "未填写"}</dd></div>)}</dl></article>;
       })}
     </div>
     {!count && <p className="empty">没有匹配结果，请减少关键词或清空搜索。</p>}
