@@ -11,6 +11,8 @@
 .lookup-card-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:8px; }
 .lookup-card-heading h4 { min-width:0; margin:0; }
 .lookup-type-tag { flex-shrink:0; white-space:nowrap; }
+.lookup-card-tags { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:4px; max-width:55%; flex-shrink:0; }
+.lookup-card-tags .chip { overflow-wrap:anywhere; }
 .lookup-group { margin-top:24px; }
 .lookup-group-title { display:flex; align-items:center; gap:10px; margin:0 0 12px; font-size:16px; }
 .lookup-group-title span { color:var(--muted); font-size:12px; font-weight:400; }

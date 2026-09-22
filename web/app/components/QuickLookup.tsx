@@ -56,11 +56,11 @@ export function QuickLookup({ state }: { state: AppState }) {
           ["银行卡号 / 账号", d.accountNumber],
           ["账户用途描述", d.purposeDescription],
           ["账户用途国家", d.purposeCountry], ["账户用途分类", d.purposeCategory],
-          ["原始账户状态", d.sourceStatus], ["资料状态", d.status],
+          ["资料状态", d.status],
           ["到期日期", d.expiryDate || (d.perpetual ? "长期有效（按当前记录）" : "未填写")],
           ["到期提醒", d.status === "保留但不使用" ? "已忽略提醒" : remaining === null ? "无到期日" : remaining < 0 ? `已过期 ${-remaining} 天` : remaining === 0 ? "今天到期" : `剩余 ${remaining} 天`],
         ];
-        return <article key={d.id} style={statusColors(d.sourceStatus)}><div className="lookup-card-heading"><h4>{d.name || "未填写资料名称"}</h4><span className="chip lookup-type-tag">{d.type || "未分类"}</span></div><span className="chip">{d.sourceStatus?.trim() || "原始账户状态未填写"}</span><dl>{fields.map(([label, value]) => <div className="lookup-field" key={label}><dt>{label}</dt><dd>{value || "未填写"}</dd></div>)}</dl></article>;
+        return <article key={d.id} style={statusColors(d.sourceStatus)}><div className="lookup-card-heading"><h4>{d.name || "未填写资料名称"}</h4><div className="lookup-card-tags"><span className="chip lookup-type-tag">{d.type || "未分类"}</span><span className="chip" title="原始账户状态">{d.sourceStatus?.trim() || "状态未填写"}</span></div></div><dl>{fields.map(([label, value]) => <div className="lookup-field" key={label}><dt>{label}</dt><dd>{value || "未填写"}</dd></div>)}</dl></article>;
       })}
     </div></section>)}
     {!count && <p className="empty">没有匹配结果，请调整关键词或筛选条件，也可点击“重置全部”。</p>}
