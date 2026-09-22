@@ -18,6 +18,9 @@
 .lookup-results dt { color:var(--muted); }
 .lookup-results dd { margin:0; overflow-wrap:anywhere; }
 .lookup-field { display:contents; }
+.lookup-filters { display:flex; flex-wrap:wrap; align-items:end; gap:10px; margin-bottom:16px; }
+.lookup-filters label { flex:1 1 160px; min-width:0; }
+.lookup-filters select { min-height:40px; }
 
 :root { --ink:#172027; --muted:#65717a; --line:#dbe3df; --canvas:#f1f5f1; --card:#fff; --forest:#1b6158; --forest-dark:#10463f; --amber:#b87916; --danger:#b74a3b; --shadow:0 12px 32px rgba(32,60,52,.08); }
 * { box-sizing:border-box; }
