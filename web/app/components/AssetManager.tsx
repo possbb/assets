@@ -132,6 +132,7 @@ export function AssetManager() {
             accountType: document.accountType || source.accountType,
             institution: document.institution || source.institution,
             sourceStatus: document.sourceStatus || source.sourceStatus,
+            accountNumber: document.accountNumber || source.accountNumber,
             purposeDescription: document.purposeDescription || source.purposeDescription,
             purposeCountry: document.purposeCountry || source.purposeCountry,
             purposeCategory: document.purposeCategory || source.purposeCategory,

@@ -152,7 +152,11 @@ export async function importPersonalAssetWorkbook(file: File): Promise<ExcelImpo
     document.accountType = safeText(values["账户类型"], "");
     document.institution = safeText(values["账户机构"], "");
     document.sourceStatus = safeText(values["账户状态"], "");
+    const number = ["银行卡号", "银行账号", "账户号码", "账户账号", "账号/卡号", "账户/卡号", "卡号", "账号"].map((key) => values[key]).find((value) => value !== undefined && value !== null && String(value).trim() !== "");
+    if (typeof number === "string") document.accountNumber = number.trim();
+    else if (typeof number === "number" && Number.isSafeInteger(number) && String(number).length <= 15) document.accountNumber = String(number);
+    else if (number !== undefined) review.warnings.push(`证照第 ${documentRows[index].rowNumber} 行银行卡号为数字格式，可能已丢失精度；请在 Excel 中将卡号设为文本并核对原卡号后重新补齐。`);
   });
-  review.warnings.push("已按最新六张工作表和表头导入；未读取或保存备注、账号/卡号、地址、证件号、密码、验证码、邮箱或附件路径。", "负数账户余额按信用卡/应付款保留为负债，不会被当作负现金。", "资金预测由账户期初余额、年度收入、年度支出及资金预测中的手工消费项重新计算，不依赖被忽略的透视表。", "缺少总金额且无法由数量与单价计算的资产已导入为待补录估值，不计入净资产。");
+  review.warnings.push("已按最新六张工作表和表头导入，支持银行卡号；未读取或保存备注、地址、证件号、密码、验证码、邮箱或附件路径。", "负数账户余额按信用卡/应付款保留为负债，不会被当作负现金。", "资金预测由账户期初余额、年度收入、年度支出及资金预测中的手工消费项重新计算，不依赖被忽略的透视表。", "缺少总金额且无法由数量与单价计算的资产已导入为待补录估值，不计入净资产。");
   return { appState: { version: 1, accounts, transactions: [], assets, cashflows, documents, fundingForecast, updatedAt: new Date().toISOString() }, review };
 }

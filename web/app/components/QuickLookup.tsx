@@ -14,7 +14,7 @@ export function SearchBox({ query, onQuery, label, placeholder }: { query: strin
 
 export function QuickLookup({ state }: { state: AppState }) {
   const [query, setQuery] = useState("");
-  const documents = state.documents.filter((d) => matchesQuery(query, [d.name, d.owner, d.type, d.accountType, d.institution, d.sourceStatus, d.purposeDescription, d.purposeCountry, d.purposeCategory, d.status, d.expiryDate]));
+  const documents = state.documents.filter((d) => matchesQuery(query, [d.name, d.owner, d.type, d.accountType, d.institution, d.accountNumber, d.accountNumber?.replace(/[\s-]/g, ""), d.sourceStatus, d.purposeDescription, d.purposeCountry, d.purposeCategory, d.status, d.expiryDate]));
   const count = documents.length;
   return <section className="card">
     <h2>证照与银行账户资料查询</h2>
@@ -27,6 +27,7 @@ export function QuickLookup({ state }: { state: AppState }) {
         const remaining = d.expiryDate ? Math.ceil((new Date(`${d.expiryDate}T00:00:00`).getTime() - new Date().setHours(0, 0, 0, 0)) / 86400000) : null;
         const fields = [
           ["资料名称", d.name], ["资料类型", d.type],
+          ["银行卡号 / 账号", d.accountNumber],
           ["账户类型", d.accountType || (parts.length > 1 ? parts[0] : "未填写")],
           ["账户机构", d.institution || (parts.length > 1 ? parts.slice(1).join(" · ") : "未填写")],
           ["归属人", d.owner], ["账户用途描述", d.purposeDescription],

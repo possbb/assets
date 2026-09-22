@@ -35,6 +35,7 @@ export type FundingForecastPoint = {
 
 export type DocumentRecord = {
   accountType?: string; institution?: string; sourceStatus?: string;
+  accountNumber?: string;
   id: string; name: string; type: "证照" | "保险" | "合同" | "账户资料"; owner: string;
   purposeDescription?: string; purposeCountry?: string; purposeCategory?: string;
   expiryDate?: string; perpetual: boolean; status: "有效" | "待复核" | "已过期" | "保留但不使用";
