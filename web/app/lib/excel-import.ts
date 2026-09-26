@@ -1,4 +1,5 @@
 import * as XLSX from "xlsx";
+import { normalizeCurrency, loadExchangeRates, toCny } from "./exchange-rates";
 import type { Account, AppState, Asset, DocumentRecord, ExpectedCashflow, FundingForecastPoint, Liquidity } from "./storage";
 
 const sheetNames = {
@@ -128,11 +129,19 @@ export async function importPersonalAssetWorkbook(file: File): Promise<ExcelImpo
   const review: ImportReview = { skippedAssetTransfers: [], skippedRows: [], warnings: [] };
   const forecastRows = sheetRows(matched.forecast!.sheet); const accountRows = sheetRows(matched.accounts!.sheet); const incomeRows = sheetRows(matched.income!.sheet); const expenseRows = sheetRows(matched.expenses!.sheet); const assetRows = sheetRows(matched.assets!.sheet); const documentRows = sheetRows(matched.documents!.sheet);
   const forecastStart = normalizeDate(forecastRows[0]?.values["期间-月初"]) ?? today();
-  const accounts: Account[] = accountRows.flatMap((row) => {
+  const accountMonth = (row: SheetRow) => {
+    const value = row.values["期间（月）"];
+    const match = String(value ?? "").match(/^(\d{4})[年/-](\d{1,2})(?:月|$|[/-])/);
+    return match ? `${match[1]}-${match[2].padStart(2, "0")}` : normalizeDate(value)?.slice(0, 7) ?? "";
+  };
+  const latestAccountMonth = accountRows.map(accountMonth).filter(Boolean).sort().at(-1);
+  const latestAccountRows = latestAccountMonth ? accountRows.filter((row) => accountMonth(row) === latestAccountMonth) : accountRows;
+  if (latestAccountMonth) review.warnings.push(`账户余额仅使用 ${latestAccountMonth} 快照，历史月份不重复累加。`);
+  const accounts: Account[] = latestAccountRows.flatMap((row) => {
     const amountMinor = moneyMinor(row.values["金额"]);
     if (amountMinor === null) { review.skippedRows.push({ source: sourceRow(matched.accounts!.name, row.rowNumber), reason: "金额为空或公式无法在浏览器中计算" }); return []; }
     const category = safeText(row.values["资金分类"], "其他"); const item = safeText(row.values["具体项目"], category); const kind = accountKind(category, item, amountMinor); const fundingNature = safeText(row.values["流动性分类"], "").includes("非灵活") ? "非灵活" : "灵活";
-    return [{ id: createImportId("acc", row.rowNumber), name: item, institution: "待补录机构", owner: owner(row.values["负责人"]), kind, category, fundingNature, currency: "CNY", liquidity: accountLiquidity(row.values["流动性分类"], kind), balanceMinor: amountMinor, asOfDate: normalizeDate(row.values["统计日期"]) ?? forecastStart, status: "活跃" }];
+    return [{ id: createImportId("acc", row.rowNumber), name: item, institution: "待补录机构", owner: owner(row.values["负责人"]), kind, category, fundingNature, currency: normalizeCurrency(row.values["币种"]), liquidity: accountLiquidity(row.values["流动性分类"], kind), balanceMinor: amountMinor, asOfDate: normalizeDate(row.values["统计日期"]) ?? forecastStart, status: "活跃" }];
   });
   const assets: Asset[] = assetRows.map((row) => {
     const stated = moneyMinor(row.values["总金额"]); const quantity = numberValue(row.values["数量"]); const unitPrice = numberValue(row.values["单价"]); const grossValueMinor = stated ?? (quantity !== null && unitPrice !== null ? Math.round(quantity * unitPrice * 100) : 0);
@@ -146,7 +155,9 @@ export async function importPersonalAssetWorkbook(file: File): Promise<ExcelImpo
     const values = row.values; const expiryDate = normalizeDate(values["到期时间"]);
     return { id: createImportId("doc", row.rowNumber), name: `${safeText(values["账户类型"], "资料")} · ${safeText(values["账户机构"], "待确认")}`, type: documentType(values["账户类型"]), owner: owner(values["归属人"]), purposeCountry: safeText(values["账户用途国家"], ""), purposeCategory: safeText(values["账户用途分类"], ""), purposeDescription: safeText(values["账户用途描述"], ""), expiryDate: expiryDate ?? undefined, perpetual: !expiryDate, status: documentStatus(values["账户状态"]), secretReference: "" };
   });
-  const fundingForecast = buildForecast(forecastRows, cashflows, accounts);
+  const fx = accounts.some((a) => a.currency !== "CNY") ? await loadExchangeRates() : null;
+  const fundingForecast = buildForecast(forecastRows, cashflows, accounts.map((a) => ({ ...a, currency: "CNY", balanceMinor: toCny(a.balanceMinor, a.currency, fx?.data ?? null) })));
+  review.warnings.push("账户原币金额保留；币种为空按人民币。资金预测为导入时人民币口径，不随展示汇率重复换算。");
   documents.forEach((document, index) => {
     const values = documentRows[index].values;
     document.accountType = safeText(values["账户类型"], "");

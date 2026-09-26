@@ -8,6 +8,7 @@ import {
 import { importPersonalAssetWorkbook } from "../lib/excel-import";
 import { readSharedState, replaceSharedState } from "../lib/remote-storage";
 import { QuickLookup, SearchBox, matchesQuery } from "./QuickLookup";
+import { displayInCny, loadExchangeRates, normalizeCurrency, type ExchangeRates } from "../lib/exchange-rates";
 
 type View = "总览" | "快速查询" | "账户" | "流水" | "资产负债" | "资金预测" | "证照提醒" | "数据安全";
 type DialogKind = "账户" | "流水" | "资产" | "预测" | "证照" | null;
@@ -28,6 +29,23 @@ export function AssetManager() {
   const [dialog, setDialog] = useState<DialogKind>(null);
   const [notice, setNotice] = useState("");
   const [query, setQuery] = useState("");
+  const [fx, setFx] = useState<ExchangeRates | null>(null);
+  const [fxStatus, setFxStatus] = useState("正在获取参考汇率…");
+  const refreshFx = async () => {
+    setFxStatus("正在获取参考汇率…");
+    try {
+      const result = await loadExchangeRates();
+      setFx(result.data);
+      const old = Date.now() - Date.parse(result.data.date) > 4 * 86400000;
+      setFxStatus(`${result.cached ? "更新失败，使用缓存" : old ? "汇率可能已过期" : "每日参考汇率"} · ${result.data.date} · ${result.data.source}`);
+    } catch (error) { setFxStatus(error instanceof Error ? error.message : "汇率读取失败"); }
+  };
+  useEffect(() => { void refreshFx(); }, []);
+  const display = useMemo(() => {
+    if (!state) return { state: null, error: "" };
+    try { return { state: displayInCny(state, fx), error: "" }; }
+    catch (error) { return { state: null, error: error instanceof Error ? error.message : "换汇失败" }; }
+  }, [state, fx]);
 
   useEffect(() => {
     let active = true;
@@ -149,6 +167,8 @@ export function AssetManager() {
   };
 
   if (!state || !metrics) return <main className="main"><p className="muted">正在打开本地账本…</p></main>;
+  if (!display.state) return <main className="main"><section className="card"><h1>人民币换算暂不可用</h1><p role="alert">{display.error}</p><p>{fxStatus}</p><button className="button" onClick={() => void refreshFx()}>重新获取汇率</button><button className="button" onClick={exportData}>导出原始数据备份</button><label className="button">导入修正后的备份<input type="file" accept="application/json" hidden onChange={importData} /></label>{notice && <p role="alert">{notice}</p>}</section></main>;
+  const shownState = display.state;
   const defaultDialog: DialogKind = view === "账户" ? "账户" : view === "流水" ? "流水" : view === "资产负债" ? "资产" : view === "资金预测" ? "预测" : "证照";
 
   return <div className="app-shell">
@@ -163,12 +183,13 @@ export function AssetManager() {
         <div className="actions"><button className="button" type="button" onClick={exportData}>导出备份</button><label className="button">导入备份<input aria-label="导入备份文件" type="file" accept="application/json" hidden onChange={importData} /></label><label className="button">导入 Excel<input aria-label="导入 Excel 数据文件" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden onChange={importExcel} /></label><label className="button">补齐证照字段<input aria-label="补齐证照字段 Excel 文件" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden onChange={supplementDocumentMetadata} /></label><button className="button button-primary" type="button" onClick={() => setDialog(defaultDialog)}>新增记录</button></div>
       </header>
       {notice && <div className="alert"><strong>提示</strong>{notice}<button className="button" type="button" onClick={() => setNotice("")}>知道了</button></div>}
-      {view === "总览" && <Dashboard state={state} onNavigate={setView} />}
+      <div className="alert"><span>{fxStatus}。金额统一折合人民币；空币种按人民币。资金预测保留导入时的人民币口径。<br />{fx && [...new Set([...state.accounts, ...state.assets, ...state.cashflows, ...state.transactions].map((a) => normalizeCurrency(a.currency)))].filter((c) => c !== "CNY").map((c) => `1 ${c} = ${fx.rates[c]?.toFixed(4)} CNY`).join(" · ")}<br /><a href="https://frankfurter.dev/" target="_blank" rel="noreferrer">汇率来源</a> · 参考汇率不含银行点差及手续费</span><button className="button" type="button" onClick={() => void refreshFx()}>刷新汇率</button></div>
+      {view === "总览" && <Dashboard state={shownState} onNavigate={setView} />}
       {view === "快速查询" && <QuickLookup state={state} />}
-      {view === "账户" && <Accounts state={state} query={query} onQuery={setQuery} />}
-      {view === "流水" && <Transactions state={state} query={query} onQuery={setQuery} />}
-      {view === "资产负债" && <><SearchBox query={query} onQuery={setQuery} label="搜索资产负债" placeholder="资产名称、归属人、资产分类、状态" /><p className="footnote">显示 {state.assets.filter((asset) => matchesQuery(query, [asset.name, asset.owner, asset.type, asset.category, asset.status, asset.currency])).length} / {state.assets.length} 项资产；下方合计为搜索结果合计。</p><Assets state={{ ...state, assets: state.assets.filter((asset) => matchesQuery(query, [asset.name, asset.owner, asset.type, asset.category, asset.status, asset.currency])) }} /></>}
-      {view === "资金预测" && <Forecast state={state} />}
+      {view === "账户" && <Accounts state={shownState} originals={state.accounts} query={query} onQuery={setQuery} />}
+      {view === "流水" && <Transactions state={shownState} query={query} onQuery={setQuery} />}
+      {view === "资产负债" && <><SearchBox query={query} onQuery={setQuery} label="搜索资产负债" placeholder="资产名称、归属人、资产分类、状态" /><p className="footnote">显示 {shownState.assets.filter((asset) => matchesQuery(query, [asset.name, asset.owner, asset.type, asset.category, asset.status, asset.currency])).length} / {shownState.assets.length} 项资产；下方合计为搜索结果合计。</p><Assets state={{ ...shownState, assets: shownState.assets.filter((asset) => matchesQuery(query, [asset.name, asset.owner, asset.type, asset.category, asset.status, asset.currency])) }} /></>}
+      {view === "资金预测" && <Forecast state={shownState} />}
       {view === "证照提醒" && <Documents state={state} />}
       {view === "数据安全" && <Security reset={() => { if (window.confirm("将清除当前浏览器中的数据并恢复示例。是否继续？")) { setState(seedState()); setNotice("已恢复示例数据。"); } }} />}
       {dialog === "账户" && <AccountDialog onClose={() => setDialog(null)} onSave={(account) => { update((draft) => draft.accounts.unshift(account)); setDialog(null); setNotice("账户已添加。请在月结时更新余额快照。"); }} />}
@@ -290,9 +311,12 @@ function CashSafetyChart({ points }: { points: CashSafetyPoint[] }) {
   return <section className="cash-safety-chart"><div className="cash-safety-legend"><span><i className="funding-stack-swatch non-flexible" />非灵活资金</span><span><i className="funding-stack-swatch flexible" />灵活资金</span><label className="funding-range">显示范围<select aria-label="资金趋势显示范围" value={selectedRange} onChange={(event) => { setActiveIndex(null); setRangeMonths(Number(event.target.value)); }}>{rangeOptions.map((months) => <option value={months} key={months}>近 {months} 个月</option>)}</select></label><span className="cash-safety-hint">悬停查看当月明细</span></div><svg className="funding-area-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="按月连续堆积面积图，底层为非灵活资金，上层为灵活资金。" onMouseLeave={() => setActiveIndex(null)}><defs><linearGradient id="funding-non-flexible-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#d5a551" stopOpacity=".78" /><stop offset="100%" stopColor="#f7e9ca" stopOpacity=".42" /></linearGradient><linearGradient id="funding-flexible-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#2c8c78" stopOpacity=".74" /><stop offset="100%" stopColor="#bde6d7" stopOpacity=".45" /></linearGradient><filter id="funding-tooltip-shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="5" stdDeviation="6" floodColor="#102a25" floodOpacity=".2" /></filter><clipPath id="funding-plot-clip"><rect x={padding.left} y={padding.top} width={plotWidth} height={plotHeight} rx="10" /></clipPath></defs><rect className="funding-area-background" x={padding.left} y={padding.top} width={plotWidth} height={plotHeight} rx="10" /><line className="funding-trend-grid" x1={padding.left} x2={width - padding.right} y1={padding.top} y2={padding.top} /><line className="funding-trend-grid" x1={padding.left} x2={width - padding.right} y1={padding.top + plotHeight / 2} y2={padding.top + plotHeight / 2} /><line className="funding-trend-grid" x1={padding.left} x2={width - padding.right} y1={baseline} y2={baseline} /><text className="funding-trend-axis" x={padding.left - 10} y={padding.top + 4} textAnchor="end">{compact(chartMaximum)}</text><text className="funding-trend-axis" x={padding.left - 10} y={baseline + 4} textAnchor="end">¥0</text><g clipPath="url(#funding-plot-clip)"><path className="funding-area-non-flexible" d={areaPath((point) => point.nonFlexibleMinor, () => 0)} /><path className="funding-area-flexible" d={areaPath((point) => point.nonFlexibleMinor + point.flexibleMinor, (point) => point.nonFlexibleMinor)} /><polyline className="funding-area-boundary non-flexible" points={visiblePoints.map((point, index) => `${x(index)},${y(point.nonFlexibleMinor)}`).join(" ")} /><polyline className="funding-area-boundary flexible" points={visiblePoints.map((point, index) => `${x(index)},${y(point.nonFlexibleMinor + point.flexibleMinor)}`).join(" ")} />{visiblePoints.map((point, index) => <><circle className="funding-area-point non-flexible" key={`non-flexible-${point.month}`} cx={x(index)} cy={y(point.nonFlexibleMinor)} r="3" /><circle className="funding-area-point flexible" key={`flexible-${point.month}`} cx={x(index)} cy={y(point.nonFlexibleMinor + point.flexibleMinor)} r="3" /></>)}{visiblePoints.map((point, index) => flexibleLabelIndexes.has(index) ? <text className="funding-flexible-value" key={`value-${point.month}`} x={x(index)} y={y(point.nonFlexibleMinor + point.flexibleMinor / 2)} textAnchor="middle">{compact(point.flexibleMinor)}</text> : null)}{active && <><line className="funding-active-guide" x1={x(activeIndex!)} x2={x(activeIndex!)} y1={padding.top} y2={baseline} /><circle className="funding-active-dot non-flexible" cx={x(activeIndex!)} cy={y(active.nonFlexibleMinor)} r="4" /><circle className="funding-active-dot flexible" cx={x(activeIndex!)} cy={y(active.nonFlexibleMinor + active.flexibleMinor)} r="4" /></>}</g>{visiblePoints.map((point, index) => <g key={point.month} className={activeIndex === index ? "funding-stack active" : "funding-stack"} tabIndex={0} aria-label={`${point.month}，资金预测合计 ${money(point.totalMinor)}，灵活资金 ${money(point.flexibleMinor)}，非灵活资金 ${money(point.nonFlexibleMinor)}`} onMouseEnter={() => setActiveIndex(index)} onFocus={() => setActiveIndex(index)} onBlur={() => setActiveIndex(null)}><rect className="funding-stack-hit" x={x(index) - plotWidth / visiblePoints.length / 2} y={padding.top} width={plotWidth / visiblePoints.length} height={plotHeight} /><text className={`funding-time-axis ${index % mobileLabelEvery === 0 || index === visiblePoints.length - 1 ? "" : "mobile-axis-label-hidden"}`} transform={`translate(${x(index)},${height - 20}) rotate(-45)`} textAnchor="end">{index % labelEvery === 0 || index === visiblePoints.length - 1 ? monthLabel(point.month) : ""}</text></g>)}{active && <g className="funding-stack-tooltip" transform={`translate(${tooltipX},${padding.top + 12})`} pointerEvents="none" filter="url(#funding-tooltip-shadow)"><rect width="178" height="84" rx="10" /><text x="12" y="20" className="funding-stack-tooltip-title">{active.month}</text><text x="12" y="41">资金预测合计 {money(active.totalMinor)}</text><text x="12" y="59">灵活资金 {money(active.flexibleMinor)}</text><text x="12" y="77">非灵活资金 {money(active.nonFlexibleMinor)}</text></g>}</svg></section>;
 }
 
-function Accounts({ state, query, onQuery }: { state: AppState; query: string; onQuery: (value: string) => void }) {
+function Accounts({ state, originals, query, onQuery }: { state: AppState; originals: Account[]; query: string; onQuery: (value: string) => void }) {
   const rows = state.accounts.filter((account) => `${account.name}${account.institution}${account.owner}`.toLowerCase().includes(query.toLowerCase()));
-  return <section className="card"><div className="card-header"><div><h2>账户与余额快照</h2><p className="footnote">余额是账户最新快照，不录入账号、卡号或登录秘密。</p></div><input className="search" aria-label="搜索账户" value={query} onChange={(event) => onQuery(event.target.value)} placeholder="搜索账户、机构或归属人" /></div><div className="table-wrap"><table><thead><tr><th>账户</th><th>机构/归属</th><th>类型</th><th>流动性</th><th>余额</th><th>截至日期</th></tr></thead><tbody>{rows.map((account) => <tr key={account.id}><td><strong>{account.name}</strong><div className="footnote">{account.status}</div></td><td>{account.institution}<div className="footnote">{account.owner}</div></td><td>{account.kind}</td><td><span className={`chip ${account.liquidity === "低" ? "muted" : account.liquidity === "中" ? "warn" : ""}`}>{account.liquidity}</span></td><td className="money">{money(account.balanceMinor, account.currency)}</td><td>{account.asOfDate}</td></tr>)}</tbody></table></div>{rows.length === 0 && <p className="empty">没有匹配账户。</p>}</section>;
+  return <section className="card"><div className="card-header"><div><h2>账户与余额快照</h2><p className="footnote">余额折合人民币；外币账户同时保留原币金额供核对。</p></div><input className="search" aria-label="搜索账户" value={query} onChange={(event) => onQuery(event.target.value)} placeholder="搜索账户、机构或归属人" /></div><div className="table-wrap"><table><thead><tr><th>账户</th><th>机构/归属</th><th>类型</th><th>流动性</th><th>余额（人民币）</th><th>截至日期</th></tr></thead><tbody>{rows.map((account) => {
+    const original = originals.find((a) => a.id === account.id);
+    return <tr key={account.id}><td><strong>{account.name}</strong><div className="footnote">{account.status}</div></td><td>{account.institution}<div className="footnote">{account.owner}</div></td><td>{account.kind}</td><td><span className={`chip ${account.liquidity === "低" ? "muted" : account.liquidity === "中" ? "warn" : ""}`}>{account.liquidity}</span></td><td className="money">{money(account.balanceMinor)}{original && normalizeCurrency(original.currency) !== "CNY" && <div className="footnote">原币 {money(original.balanceMinor, normalizeCurrency(original.currency))} {normalizeCurrency(original.currency)}</div>}</td><td>{account.asOfDate}</td></tr>;
+  })}</tbody></table></div>{rows.length === 0 && <p className="empty">没有匹配账户。</p>}</section>;
 }
 
 function Transactions({ state, query, onQuery }: { state: AppState; query: string; onQuery: (value: string) => void }) {

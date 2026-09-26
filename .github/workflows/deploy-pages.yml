@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  schedule:
+    - cron: "23 18 * * *"
 
 permissions:
   contents: read
@@ -41,6 +43,9 @@ jobs:
         env:
           GITHUB_PAGES: "true"
         run: pnpm run build
+      - name: Fetch public daily exchange rates
+        working-directory: web
+        run: node tools/update-exchange-rates.mjs && cp public/exchange-rates.json dist/exchange-rates.json
       - name: Compose personal homepage and finance page
         run: node personal-hub/build-pages.mjs
       - name: Upload site
