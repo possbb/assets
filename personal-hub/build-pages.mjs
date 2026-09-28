@@ -13,7 +13,7 @@ await writeFile(path.join(output, 'assets', 'index.html'), finance);
 let html = await readFile(path.join(here, 'dist/index.html'), 'utf8');
 html = html.replace('href="https://possbb.github.io/assets/finance.html"', 'href="./finance.html"');
 html = html.replace(/<button\b([^>]*\bdata-app="([^"]+)"[^>]*)>([\s\S]*?)<\/button>/g, (_, attributes, app, content) => {
-  const section = { godot: 3, obsidian: 2, baidu: 4, feishu: 4 }[app];
+  const section = { godot: 3, obsidian: 4, baidu: 4, feishu: 4 }[app];
   if (section === undefined) throw new Error('Unknown desktop app: ' + app);
   const clean = attributes.replace(/\s*(?:type|data-app|aria-label)="[^"]*"/g, '');
   const label = /aria-label="([^"]*)"/.exec(attributes)?.[1] || app;
