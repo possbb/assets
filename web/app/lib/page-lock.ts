@@ -1,6 +1,22 @@
 /// <reference types="vite/client" />
 // Static access gate only; does not secure data APIs or encrypt the ledger.
 export type SitePassword = { version: 1; salt: string; hash: string };
+export const SESSION_KEY = "family-assets-access-session-v1";
+export const SESSION_TTL = 7 * 24 * 60 * 60 * 1000;
+export function sessionExpiry(raw: string | null, config: SitePassword, now = Date.now()): number | null {
+  try {
+    const session = JSON.parse(raw ?? "null");
+    return session?.revision === `${config.salt}:${config.hash}` && Number.isFinite(session.expiresAt) && session.expiresAt > now && session.expiresAt <= now + SESSION_TTL ? session.expiresAt : null;
+  } catch { return null; }
+}
+export function rememberAccess(config: SitePassword, expiresAt: number) {
+  try { localStorage.setItem(SESSION_KEY, JSON.stringify({ revision: `${config.salt}:${config.hash}`, expiresAt })); return true; }
+  catch { return false; }
+}
+export function forgetAccess() { try { localStorage.removeItem(SESSION_KEY); } catch { /* Storage may be unavailable. */ } }
+export function readAccess(config: SitePassword) {
+  try { return sessionExpiry(localStorage.getItem(SESSION_KEY), config); } catch { return null; }
+}
 export function parseSitePassword(value: unknown): SitePassword {
   const config = value as SitePassword;
   if (config?.version !== 1 || !/^[a-f0-9]{32}$/.test(config.salt) || !/^[a-f0-9]{64}$/.test(config.hash)) throw new Error("网站密码配置无效，请联系管理员。");

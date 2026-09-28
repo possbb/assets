@@ -30,10 +30,36 @@ test("configuration is fetched fresh and missing configuration fails closed", as
 });
 test("visitor has no account creation/settings or browser-local password source", async () => {
   const component = await readFile(new URL("../app/components/PageLock.tsx", import.meta.url), "utf8");
-  assert.doesNotMatch(component + source, /localStorage|sessionStorage|createLockAccount|设置访问账户|保存账户密码/);
+  assert.doesNotMatch(component + source, /createLockAccount|设置访问账户|保存账户密码/);
   assert.match(component, /if \(unlocked\) return/);
   for (const path of ["../main.tsx", "../app/page.tsx"]) assert.match(await readFile(new URL(path, import.meta.url), "utf8"), /<PageLock><AssetManager \/><\/PageLock>/);
   const config = JSON.parse(await readFile(new URL("../public/site-password.json", import.meta.url), "utf8"));
   assert.deepEqual(Object.keys(config).sort(), ["hash", "salt", "version"]);
   lock.parseSitePassword(config);
+});
+test("remembered access survives reopening but expires and rejects changed site passwords", () => {
+  const config = { version: 1, salt: "a".repeat(32), hash: "b".repeat(64) };
+  const now = 1000000;
+  const raw = JSON.stringify({ revision: `${config.salt}:${config.hash}`, expiresAt: now + lock.SESSION_TTL });
+  assert.equal(lock.sessionExpiry(raw, config, now + 1000), now + lock.SESSION_TTL);
+  assert.equal(lock.sessionExpiry(raw, config, now + lock.SESSION_TTL), null);
+  assert.equal(lock.sessionExpiry(raw, { ...config, hash: "c".repeat(64) }, now), null);
+  assert.equal(lock.sessionExpiry(raw, config, now - 1), null);
+  assert.equal(lock.sessionExpiry(null, config, now), null);
+  assert.equal(lock.sessionExpiry("broken", config, now), null);
+});
+test("logout clears saved access and denied storage does not crash login", () => {
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
+  const store = new Map();
+  Object.defineProperty(globalThis, "localStorage", { configurable: true, value: { getItem: (k) => store.get(k) ?? null, setItem: (k,v) => store.set(k,v), removeItem: (k) => store.delete(k) } });
+  const config = { version: 1, salt: "a".repeat(32), hash: "b".repeat(64) };
+  try {
+    assert.equal(lock.rememberAccess(config, Date.now() + lock.SESSION_TTL), true);
+    assert.ok(lock.readAccess(config));
+    lock.forgetAccess(); assert.equal(lock.readAccess(config), null);
+    Object.defineProperty(globalThis, "localStorage", { configurable: true, get() { throw new Error("denied"); } });
+    assert.equal(lock.rememberAccess(config, Date.now() + lock.SESSION_TTL), false);
+    assert.equal(lock.readAccess(config), null);
+    assert.doesNotThrow(() => lock.forgetAccess());
+  } finally { if (descriptor) Object.defineProperty(globalThis, "localStorage", descriptor); else delete globalThis.localStorage; }
 });
