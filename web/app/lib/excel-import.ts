@@ -81,7 +81,7 @@ function accountKind(category: string, item: string, amountMinor: number): Accou
 }
 function accountLiquidity(source: unknown, kind: Account["kind"]): Liquidity { const text = safeText(source, ""); return kind === "信用卡" ? "中" : text.includes("非灵活") ? "低" : text.includes("灵活") ? "高" : kind === "现金" ? "高" : "低"; }
 function assetType(source: unknown): Asset["type"] { const text = safeText(source, ""); return text.includes("房") || text.includes("车位") ? "房产" : text.includes("车") ? "车辆" : text.includes("股票") || text.includes("期权") ? "股权/期权" : "其他"; }
-function assetStatus(source: unknown): Asset["status"] { const text = safeText(source, ""); return text.includes("出售") ? "待出售" : text.includes("出租") ? "待出租" : text.includes("购置") ? "待购置" : "持有"; }
+function assetStatus(source: unknown): Asset["status"] { const text = safeText(source, ""); return text.includes("已出售") ? "已出售" : text.includes("出售") ? "待出售" : text.includes("出租") ? "待出租" : text.includes("购置") ? "待购置" : "持有"; }
 function ownership(value: unknown) { const match = safeText(value, "").match(/(\d+)\s*\/\s*(\d+)/); return match && Number(match[2]) ? Math.min(100, Math.max(0, Number(match[1]) / Number(match[2]) * 100)) : 100; }
 function owner(value: unknown) { return safeText(value, "家庭").replace(/\s*\d+\s*\/\s*\d+\s*$/, ""); }
 function fundingBucket(value: unknown): "灵活" | "非灵活" { return safeText(value, "").includes("非灵活") ? "非灵活" : "灵活"; }

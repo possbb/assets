@@ -19,7 +19,7 @@ export type Asset = {
   id: string; name: string; type: "房产" | "车辆" | "股权/期权" | "其他"; owner: string;
   category?: string;
   ownershipPct: number; grossValueMinor: number; liabilityMinor: number; currency: string;
-  valuationDate: string; liquidity: Liquidity; status: "持有" | "待出售" | "待出租" | "待购置";
+  valuationDate: string; liquidity: Liquidity; status: "持有" | "待出售" | "已出售" | "待出租" | "待购置";
 };
 
 export type ExpectedCashflow = {

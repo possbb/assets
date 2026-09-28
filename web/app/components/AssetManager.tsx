@@ -218,7 +218,8 @@ function Dashboard({ state, onNavigate }: { state: AppState; onNavigate: (view: 
   const latestActual = [...(state.fundingForecast ?? [])].filter((point) => point.category === "ACT").sort((a, b) => b.month.localeCompare(a.month))[0];
   const accountAsOf = [...state.accounts].map((account) => account.asOfDate).sort().at(-1) ?? "待导入";
   const forecastEnd = points.at(-1)?.month ?? "—";
-  const fixedAssetGroups = [...state.assets.reduce((groups, asset) => {
+  const currentAssets = state.assets.filter((asset) => asset.status !== "已出售");
+  const fixedAssetGroups = [...currentAssets.reduce((groups, asset) => {
     const category = asset.category ?? asset.type;
     groups.set(category, (groups.get(category) ?? 0) + (asset.grossValueMinor - asset.liabilityMinor) * asset.ownershipPct / 100);
     return groups;
@@ -236,7 +237,7 @@ function Dashboard({ state, onNavigate }: { state: AppState; onNavigate: (view: 
     <section className="overview-hero"><div><div className="eyebrow">资金安全视图</div><h2>当前资金与未来现金流</h2><p>账户快照截至 {accountAsOf} · 预测覆盖至 {forecastEnd} · 实际流水不会被预测覆盖。</p></div><button className="button" type="button" onClick={() => onNavigate("资金预测")}>查看完整预测</button></section>
     <section className="overview-summary-grid" aria-label="当前资金与资产摘要">
       <OverviewSnapshot title="当前资金" value={latestActual ? money(latestActual.totalMinor) : "—"} detail={latestActual ? `资金预测 · ACT · ${latestActual.month}（最新实际期间）` : "导入资金预测中的 ACT 数据后显示"} rows={fundingCategoryGroups.map((group) => ({ label: `${group.fundingNature}资金`, value: latestActual ? money(group.fundingNature === "灵活" ? latestActual.flexibleMinor : latestActual.nonFlexibleMinor) : "—", details: group.rows.map((row) => ({ label: row.category, value: money(row.amount), tone: row.amount < 0 ? "negative" as const : undefined })) }))} />
-      <FixedAssetSnapshot assets={state.assets} groups={fixedAssetGroups} total={fixedAssetNet} />
+      <FixedAssetSnapshot assets={currentAssets} groups={fixedAssetGroups} total={fixedAssetNet} />
     </section>
     <section className="overview-grid"><div className="card overview-trend-card"><div className="card-header"><div><h2>按月资金趋势</h2><p className="footnote">灵活资金与非灵活资金按月连续堆积展示；悬停图形可查看资金预测合计与明细。</p></div></div><CashSafetyChart points={points} /></div><CashflowPlan state={state} onNavigate={onNavigate} /></section>
     <section className="overview-attention-row"><DashboardAttention state={state} onNavigate={onNavigate} /></section>
