@@ -1,6 +1,7 @@
 import { cp, mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import ts from '../web/node_modules/typescript/lib/typescript.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const output = path.resolve(here, '../web/dist');
@@ -23,6 +24,13 @@ html = html.replace(/<button\b([^>]*\bdata-app="([^"]+)"[^>]*)>([\s\S]*?)<\/butt
 html = html.replace('<script src="app.js"></script>', '');
 html = html.replace('本地个人首页', '个人网站首页');
 html = html.replace('桌面应用仅限本机', '本机启动需先运行本地个人页服务');
+const gate = await readFile(path.join(here, 'site-lock.html'), 'utf8');
+html = html.replace('</head>', '<link rel="stylesheet" href="site-lock.css"></head>')
+  .replace('<body>', '<body class="site-locked">' + gate)
+  .replace('</body>', '<script type="module" src="site-lock.js"></script></body>');
+const lockSource = (await readFile(path.join(here, '../web/app/lib/page-lock.ts'), 'utf8')).replace('import.meta.env.BASE_URL', 'new URL("./", import.meta.url).href');
+await writeFile(path.join(output, 'page-lock.js'), ts.transpileModule(lockSource, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText);
+for (const file of ['site-lock.js', 'site-lock.css']) await cp(path.join(here, file), path.join(output, file));
 await writeFile(path.join(output, 'index.html'), html);
 await cp(path.join(here, 'dist/style.css'), path.join(output, 'style.css'));
 await mkdir(path.join(output, 'images'), { recursive: true });

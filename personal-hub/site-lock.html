@@ -1,0 +1,12 @@
+<section id="site-login" aria-label="网站登录">
+  <form id="site-login-form">
+    <h1>欢迎回来</h1>
+    <p>请输入网站访问密码。与家财管家共用登录状态，此浏览器 7 天内免重复输入。</p>
+    <label for="site-password">访问密码</label>
+    <input id="site-password" type="password" autocomplete="current-password" required maxlength="128">
+    <button id="site-submit" type="submit" disabled>进入网站</button>
+    <p id="site-message" role="status">正在读取密码配置…</p>
+    <noscript>请启用 JavaScript 后登录。</noscript>
+  </form>
+</section>
+<div id="site-login-toolbar" hidden><span>已登录 · 共用设备请在使用后退出</span><button id="site-logout" type="button">退出并锁定</button></div>

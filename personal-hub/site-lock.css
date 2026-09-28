@@ -1,0 +1,12 @@
+body.site-locked > :not(#site-login) { display: none !important; }
+#site-login[hidden], #site-login-toolbar[hidden] { display: none !important; }
+#site-login { min-height: 100vh; display: grid; place-items: center; padding: 24px; box-sizing: border-box; }
+#site-login form { width: min(100%, 420px); padding: 32px; box-sizing: border-box; background: #fff; border: 1px solid #dce6df; border-radius: 20px; box-shadow: 0 16px 60px #193d3510; }
+#site-login h1 { font-size: 28px; margin: 0 0 16px; }
+#site-login p { color: #63756e; font-size: 14px; line-height: 1.7; }
+#site-login label { display: block; margin: 24px 0 8px; }
+#site-password { width: 100%; box-sizing: border-box; padding: 12px; border: 1px solid #bacdc4; border-radius: 8px; font-size: 16px; }
+#site-submit { width: 100%; margin-top: 16px; padding: 12px; color: white; background: #1b433f; border: 0; border-radius: 8px; cursor: pointer; }
+#site-submit:disabled { opacity: .5; }
+#site-login-toolbar { position: sticky; top: 0; z-index: 20; display: flex; justify-content: flex-end; align-items: center; gap: 12px; padding: 8px 20px; background: #f1f6f2; font-size: 12px; }
+#site-logout { padding: 6px 10px; border: 1px solid #cbdad2; border-radius: 8px; background: white; cursor: pointer; }
