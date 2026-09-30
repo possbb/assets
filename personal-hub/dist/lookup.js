@@ -26,7 +26,7 @@ function clear() {
 window.addEventListener('message', (event) => {
   if (!frame || event.source !== frame.contentWindow || event.origin !== finance.origin || event.data?.type !== 'hub-lookup-ready') return;
   clearTimeout(timeout);
-  status.textContent = '可在下方查看结果、继续筛选或刷新资料。';
+  status.textContent = '查询结果显示在下方。';
   send();
 });
 form.addEventListener('submit', (event) => {

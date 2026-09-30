@@ -38,7 +38,7 @@ export function HomeLookup() {
     return () => { active = false; };
   }, [revision]);
   return <main className="home-lookup">
+    {state && request && <QuickLookup key={request.id} state={state} initialQuery={request.query} resultsOnly />}
     <div className="home-lookup-status"><span role="status">{status}</span><button className="button" onClick={() => setRevision((value) => value + 1)}>刷新资料</button></div>
-    {state && request && <QuickLookup key={request.id} state={state} initialQuery={request.query} />}
   </main>;
 }

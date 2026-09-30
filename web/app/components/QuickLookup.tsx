@@ -16,7 +16,7 @@ export function SearchBox({ query, onQuery, label, placeholder }: { query: strin
   return <div className="lookup-search"><label>{label}<input type="search" value={query} onChange={(event) => onQuery(event.target.value)} placeholder={placeholder} /></label><button className="button" onClick={() => onQuery("")} disabled={!query}>清空</button></div>;
 }
 
-export function QuickLookup({ state, initialQuery = "" }: { state: AppState; initialQuery?: string }) {
+export function QuickLookup({ state, initialQuery = "", resultsOnly = false }: { state: AppState; initialQuery?: string; resultsOnly?: boolean }) {
   const [query, setQuery] = useState(initialQuery);
   const [owner, setOwner] = useState("");
   const [institution, setInstitution] = useState("");
@@ -36,7 +36,7 @@ export function QuickLookup({ state, initialQuery = "" }: { state: AppState; ini
     return { backgroundColor: `hsl(${hue} 45% 96%)`, borderColor: `hsl(${hue} 38% 52%)` };
   };
   return <section className="card">
-    <h2>证照与银行账户资料查询</h2>
+    {!resultsOnly && <><h2>证照与银行账户资料查询</h2>
     <p className="footnote">查询已导入的证照与银行账户资料；多个关键词用空格分隔。</p>
     <SearchBox query={query} onQuery={setQuery} label="查询关键词" placeholder="例如：建设银行、护照、姓名 国家" />
     <div className="lookup-filters">
@@ -44,8 +44,9 @@ export function QuickLookup({ state, initialQuery = "" }: { state: AppState; ini
       <label>账户机构<select value={institution} onChange={(event) => setInstitution(event.target.value)}><option value="">全部账户机构</option>{institutions.map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
       <button className="button" disabled={!query && !owner && !institution} onClick={() => { setQuery(""); setOwner(""); setInstitution(""); }}>重置全部</button>
     </div>
+    </>}
     <div className="lookup-tabs"><span role="status">共 {count} 条结果</span></div>
-    <div className="lookup-status-legend" aria-label="原始账户状态颜色说明"><strong>原始账户状态</strong>{[...statuses, ""].map((status) => <span key={status}><i style={statusColors(status)} />{status || "未填写"}</span>)}</div>
+    {!resultsOnly && <div className="lookup-status-legend" aria-label="原始账户状态颜色说明"><strong>原始账户状态</strong>{[...statuses, ""].map((status) => <span key={status}><i style={statusColors(status)} />{status || "未填写"}</span>)}</div>}
     {groups.map((type) => <section className="lookup-group" key={type} aria-label={type}>
     <h3 className="lookup-group-title">{type}<span>{documents.filter((document) => (document.type || "未分类") === type).length} 项</span></h3>
     <div className="lookup-results">

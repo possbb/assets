@@ -52,3 +52,16 @@ test('lookup searches remarks, escapes markup and supports older records without
   const old = renderToStaticMarkup(React.createElement(exports.QuickLookup, { state, initialQuery: '旧资料' }));
   assert.match(old, /<dt>备注<\/dt><dd>未填写<\/dd>/);
 });
+
+test('homepage displays results directly while finance retains full filters', () => {
+  const state = { documents: [{ id: '1', name: '示例资料', type: '证照', owner: '测试', status: '有效' }] };
+  const render = (resultsOnly) => renderToStaticMarkup(React.createElement(exports.QuickLookup, { state, initialQuery: '示例', resultsOnly }));
+  const home = render(true);
+  assert.match(home, /示例资料/);
+  assert.match(home, /共 1 条结果/);
+  assert.doesNotMatch(home, /<input|<select|重置全部|lookup-status-legend|<h2>/);
+  const finance = render(false);
+  assert.match(finance, /<input/);
+  assert.match(finance, /<select/);
+  assert.match(finance, /lookup-status-legend/);
+});
