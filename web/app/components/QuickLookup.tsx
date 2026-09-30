@@ -25,7 +25,7 @@ export function QuickLookup({ state, initialQuery = "" }: { state: AppState; ini
   const documents = state.documents.filter((d) =>
     (!owner || (d.owner?.trim() || "未填写") === owner) &&
     (!institution || documentInstitution(d) === institution) &&
-    matchesQuery(query, [d.name, d.owner, d.type, d.accountType, documentInstitution(d), d.accountNumber, d.accountNumber?.replace(/[\s-]/g, ""), d.sourceStatus, d.purposeDescription, d.purposeCountry, d.purposeCategory, d.status, d.expiryDate]));
+    matchesQuery(query, [d.name, d.owner, d.type, d.accountType, documentInstitution(d), d.accountNumber, d.accountNumber?.replace(/[\s-]/g, ""), d.sourceStatus, d.purposeDescription, d.purposeCountry, d.purposeCategory, d.status, d.expiryDate, d.note]));
   const count = documents.length;
   const groups = [...new Set(documents.map((document) => document.type || "未分类"))].sort();
   const statuses = [...new Set(state.documents.map((document) => document.sourceStatus?.trim()).filter((status): status is string => Boolean(status)))].sort();
@@ -57,6 +57,7 @@ export function QuickLookup({ state, initialQuery = "" }: { state: AppState; ini
           ["账户用途描述", d.purposeDescription],
           ["账户用途分类", d.purposeCategory],
           ["资料状态", d.status],
+          ["备注", d.note],
           ["到期日期", d.expiryDate || (d.perpetual ? "长期有效（按当前记录）" : "未填写")],
           ["到期提醒", d.status === "保留但不使用" ? "已忽略提醒" : remaining === null ? "无到期日" : remaining < 0 ? `已过期 ${-remaining} 天` : remaining === 0 ? "今天到期" : `剩余 ${remaining} 天`],
         ];

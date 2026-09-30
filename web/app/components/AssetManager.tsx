@@ -154,13 +154,14 @@ export function AssetManager() {
             purposeDescription: document.purposeDescription || source.purposeDescription,
             purposeCountry: document.purposeCountry || source.purposeCountry,
             purposeCategory: document.purposeCategory || source.purposeCategory,
+            note: document.note || source.note,
             status: source.status === "保留但不使用" ? source.status : document.status,
           };
           if (JSON.stringify(next) !== JSON.stringify(document)) supplemented += 1;
         return next;
       });
       if (supplemented) setState({ ...state, documents, updatedAt: new Date().toISOString() });
-      setNotice(supplemented ? `已补齐 ${supplemented} 项证照的账户用途信息与提醒状态；其他账本数据未改动。` : "未找到可匹配的证照记录，未修改当前账本。请确认选择的是导入时使用的同一份 Excel。");
+      setNotice(supplemented ? `已补齐 ${supplemented} 项证照的账户用途信息、备注与提醒状态；其他账本数据未改动。` : "未找到可匹配的证照记录，未修改当前账本。请确认选择的是导入时使用的同一份 Excel。");
     } catch (error) {
       setNotice(error instanceof Error ? `证照字段补齐失败：${error.message}` : "证照字段补齐失败，请确认 Excel 格式。");
     }
@@ -450,6 +451,6 @@ function CashflowDialog({ onClose, onSave }: { onClose: () => void; onSave: (flo
 }
 
 function DocumentDialog({ onClose, onSave }: { onClose: () => void; onSave: (document: DocumentRecord) => void }) {
-  const [form, setForm] = useState({ name: "", type: "证照" as DocumentRecord["type"], owner: "家庭", expiryDate: "", perpetual: false, secretReference: "" });
-  return <Dialog title="新增证照或合同元数据" description="完整证件号、扫描件和密码请不要填写在这里；需要时填写外部保险库/附件系统的引用。" onClose={onClose}><form onSubmit={(event) => { event.preventDefault(); if (!form.name.trim()) return; onSave({ id: createId("doc"), name: form.name.trim(), type: form.type, owner: form.owner.trim() || "家庭", expiryDate: form.perpetual ? undefined : form.expiryDate || undefined, perpetual: form.perpetual, status: form.perpetual ? "有效" : form.expiryDate ? "有效" : "待复核", secretReference: form.secretReference.trim() }); }}><div className="form-grid two"><Field label="资料名称" value={form.name} onChange={(value) => setForm({ ...form, name: value })} required /><Select label="类型" value={form.type} options={["证照", "保险", "合同", "账户资料"]} onChange={(value) => setForm({ ...form, type: value as DocumentRecord["type"] })} /><Field label="归属人" value={form.owner} onChange={(value) => setForm({ ...form, owner: value })} /><Field label="到期日" type="date" value={form.expiryDate} onChange={(value) => setForm({ ...form, expiryDate: value })} /><Select label="长期有效" value={form.perpetual ? "是" : "否"} options={["否", "是"]} onChange={(value) => setForm({ ...form, perpetual: value === "是" })} /><Field label="外部保险库引用（可选）" value={form.secretReference} onChange={(value) => setForm({ ...form, secretReference: value })} /></div><FormActions onClose={onClose} /></form></Dialog>;
+  const [form, setForm] = useState({ name: "", type: "证照" as DocumentRecord["type"], owner: "家庭", expiryDate: "", perpetual: false, secretReference: "", note: "" });
+  return <Dialog title="新增证照或合同元数据" description="完整证件号、扫描件和密码请不要填写在这里；需要时填写外部保险库/附件系统的引用。" onClose={onClose}><form onSubmit={(event) => { event.preventDefault(); if (!form.name.trim()) return; onSave({ id: createId("doc"), name: form.name.trim(), type: form.type, owner: form.owner.trim() || "家庭", expiryDate: form.perpetual ? undefined : form.expiryDate || undefined, perpetual: form.perpetual, status: form.perpetual ? "有效" : form.expiryDate ? "有效" : "待复核", note: form.note.trim(), secretReference: form.secretReference.trim() }); }}><div className="form-grid two"><Field label="资料名称" value={form.name} onChange={(value) => setForm({ ...form, name: value })} required /><Select label="类型" value={form.type} options={["证照", "保险", "合同", "账户资料"]} onChange={(value) => setForm({ ...form, type: value as DocumentRecord["type"] })} /><Field label="归属人" value={form.owner} onChange={(value) => setForm({ ...form, owner: value })} /><Field label="到期日" type="date" value={form.expiryDate} onChange={(value) => setForm({ ...form, expiryDate: value })} /><Select label="长期有效" value={form.perpetual ? "是" : "否"} options={["否", "是"]} onChange={(value) => setForm({ ...form, perpetual: value === "是" })} /><Field label="外部保险库引用（可选）" value={form.secretReference} onChange={(value) => setForm({ ...form, secretReference: value })} /></div><Field label="备注" value={form.note} onChange={(value) => setForm({ ...form, note: value })} className="span-all" /><FormActions onClose={onClose} /></form></Dialog>;
 }

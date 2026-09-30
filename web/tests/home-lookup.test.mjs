@@ -38,3 +38,17 @@ test('homepage bridge checks frame origin/source, sends no query in URL, clears 
   assert.equal(messages[0].data.query, '测试 银行'); assert.equal(messages[0].origin, 'https://possbb.github.io');
   body.locked = true; observer(); assert.equal(frame.removed, true); assert.equal(nodes['hub-lookup-input'].value, ''); assert.equal(nodes['hub-lookup-results'].hidden, true);
 });
+
+test('lookup searches remarks, escapes markup and supports older records without remarks', () => {
+  const state = { documents: [
+    { id: 'note', name: '备注测试记录', type: '账户资料', owner: '测试', note: '预约柜台\n<script>test</script>', status: '有效' },
+    { id: 'old', name: '旧资料', type: '证照', owner: '测试', status: '有效' },
+  ] };
+  const html = renderToStaticMarkup(React.createElement(exports.QuickLookup, { state, initialQuery: '预约柜台' }));
+  assert.match(html, /备注测试记录/);
+  assert.match(html, /<dt>备注<\/dt>/);
+  assert.match(html, /&lt;script&gt;test&lt;\/script&gt;/);
+  assert.doesNotMatch(html, /旧资料|<script>/);
+  const old = renderToStaticMarkup(React.createElement(exports.QuickLookup, { state, initialQuery: '旧资料' }));
+  assert.match(old, /<dt>备注<\/dt><dd>未填写<\/dd>/);
+});
