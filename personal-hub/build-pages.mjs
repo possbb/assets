@@ -12,7 +12,7 @@ await rename(path.join(output, 'index.html'), path.join(output, 'finance.html'))
 await mkdir(path.join(output, 'assets'), { recursive: true });
 await writeFile(path.join(output, 'assets', 'index.html'), finance);
 let html = await readFile(path.join(here, 'dist/index.html'), 'utf8');
-html = html.replace('href="https://possbb.github.io/assets/finance.html"', 'href="./finance.html"');
+html = html.replaceAll('href="https://possbb.github.io/assets/finance.html"', 'href="./finance.html"');
 html = html.replace(/<button\b([^>]*\bdata-app="([^"]+)"[^>]*)>([\s\S]*?)<\/button>/g, (_, attributes, app, content) => {
   const section = { godot: 3, obsidian: 4, baidu: 4, feishu: 4 }[app];
   if (section === undefined) throw new Error('Unknown desktop app: ' + app);
@@ -33,6 +33,7 @@ await writeFile(path.join(output, 'page-lock.js'), ts.transpileModule(lockSource
 for (const file of ['site-lock.js', 'site-lock.css']) await cp(path.join(here, file), path.join(output, file));
 await writeFile(path.join(output, 'index.html'), html);
 await cp(path.join(here, 'dist/style.css'), path.join(output, 'style.css'));
+await cp(path.join(here, 'dist/lookup.js'), path.join(output, 'lookup.js'));
 await mkdir(path.join(output, 'images'), { recursive: true });
 await cp(path.join(here, 'dist/images'), path.join(output, 'images'), { recursive: true });
 if ((html.match(/<article class="card">/g) || []).length !== 19 || html.includes('data-app=')) {

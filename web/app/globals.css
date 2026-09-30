@@ -101,3 +101,5 @@ button,input,select,textarea { font:inherit; } button { cursor:pointer; }
 .page-lock-card label { display:grid; gap:7px; }
 .page-lock-card input { box-sizing:border-box; width:100%; min-height:44px; font-size:16px; }
 .page-lock-toolbar { display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:10px; padding:10px 20px; background:#f7faf8; border-bottom:1px solid #dce5df; }
+
+.home-lookup{padding:12px;max-width:100%;min-width:0}.home-lookup>.card{margin-top:10px}.home-lookup-status{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12px;color:var(--muted)}

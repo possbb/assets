@@ -16,8 +16,8 @@ export function SearchBox({ query, onQuery, label, placeholder }: { query: strin
   return <div className="lookup-search"><label>{label}<input type="search" value={query} onChange={(event) => onQuery(event.target.value)} placeholder={placeholder} /></label><button className="button" onClick={() => onQuery("")} disabled={!query}>清空</button></div>;
 }
 
-export function QuickLookup({ state }: { state: AppState }) {
-  const [query, setQuery] = useState("");
+export function QuickLookup({ state, initialQuery = "" }: { state: AppState; initialQuery?: string }) {
+  const [query, setQuery] = useState(initialQuery);
   const [owner, setOwner] = useState("");
   const [institution, setInstitution] = useState("");
   const owners = [...new Set(state.documents.map((d) => d.owner?.trim() || "未填写"))].sort((a, b) => a.localeCompare(b, "zh-CN"));
