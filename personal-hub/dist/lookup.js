@@ -40,6 +40,7 @@ form.addEventListener('submit', (event) => {
     status.textContent = '正在打开快速查询；如提示访问密码，请先完成验证。';
     frame = document.createElement('iframe');
     frame.title = '家财管家快速查询结果';
+    finance.searchParams.set('v', String(Date.now()));
     frame.src = finance.href;
     frame.addEventListener('load', send);
     panel.append(frame);

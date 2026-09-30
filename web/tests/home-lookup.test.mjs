@@ -31,7 +31,11 @@ test('homepage bridge checks frame origin/source, sends no query in URL, clears 
   vm.runInNewContext(readFileSync(new URL('../../personal-hub/dist/lookup.js', import.meta.url), 'utf8'), context);
   nodes['hub-lookup-input'].value = '测试 银行'; nodes['hub-lookup-form'].events.submit({preventDefault(){}});
   const frame = nodes['hub-lookup-results'].child;
-  assert.equal(frame.src, 'https://possbb.github.io/assets/finance.html#home-lookup');
+  const frameUrl = new URL(frame.src);
+  assert.equal(frameUrl.pathname, '/assets/finance.html');
+  assert.equal(frameUrl.hash, '#home-lookup');
+  assert.match(frameUrl.searchParams.get('v'), /^\d+$/);
+  assert.deepEqual([...frameUrl.searchParams.keys()], ['v']);
   listeners.message({ source: frame.contentWindow, origin: 'https://evil.example', data: {type:'hub-lookup-ready'} }); assert.equal(messages.length,0);
   listeners.message({ source: {}, origin: 'https://possbb.github.io', data: {type:'hub-lookup-ready'} }); assert.equal(messages.length,0);
   listeners.message({ source: frame.contentWindow, origin: 'https://possbb.github.io', data: {type:'hub-lookup-ready'} });
