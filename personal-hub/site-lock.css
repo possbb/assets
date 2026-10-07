@@ -10,3 +10,9 @@ body.site-locked > :not(#site-login) { display: none !important; }
 #site-submit:disabled { opacity: .5; }
 #site-login-toolbar { position: sticky; top: 0; z-index: 20; display: flex; justify-content: flex-end; align-items: center; gap: 12px; padding: 8px 20px; background: #f1f6f2; font-size: 12px; }
 #site-logout { padding: 6px 10px; border: 1px solid #cbdad2; border-radius: 8px; background: white; cursor: pointer; }
+
+/* Match the workstation without changing the access flow. */
+#site-login form{background:#132b3d;border-color:#304e65;color:#edf5fc;box-shadow:0 16px 60px #0003}
+#site-login p{color:#adc1d1}#site-password{background:#0c1d2c;border-color:#3b5970;color:#edf5fc}
+#site-submit{background:#1471db}#site-login-toolbar{background:#0c1d2c;color:#abc2d4;border-bottom:1px solid #294356}
+#site-logout{background:#203b50;color:#eaf5ff;border-color:#3b5970}

@@ -14,11 +14,14 @@ await mkdir(path.join(output, 'assets'), { recursive: true });
 await writeFile(path.join(output, 'assets', 'index.html'), finance);
 let html = await readFile(path.join(here, 'dist/index.html'), 'utf8');
 const lookupSource = await readFile(path.join(here, 'dist/lookup.js'), 'utf8');
+const styleSource = await readFile(path.join(here, 'dist/style.css'), 'utf8');
+const styleVersion = createHash('sha256').update(styleSource).digest('hex').slice(0, 12);
+html = html.replace(/href="style\.css(?:\?[^"]*)?"/, `href="style.css?v=${styleVersion}"`);
 const lookupVersion = createHash('sha256').update(lookupSource + finance).digest('hex').slice(0, 12);
 html = html.replace(/src="lookup\.js(?:\?[^"]*)?"/, `src="lookup.js?v=${lookupVersion}"`);
 html = html.replaceAll('href="https://possbb.github.io/assets/finance.html"', 'href="./finance.html"');
 html = html.replace(/<button\b([^>]*\bdata-app="([^"]+)"[^>]*)>([\s\S]*?)<\/button>/g, (_, attributes, app, content) => {
-  const section = { godot: 3, obsidian: 4, baidu: 4, feishu: 4 }[app];
+  const section = { godot: 1, obsidian: 4, baidu: 4, feishu: 4 }[app];
   if (section === undefined) throw new Error('Unknown desktop app: ' + app);
   const clean = attributes.replace(/\s*(?:type|data-app|aria-label)="[^"]*"/g, '');
   const label = /aria-label="([^"]*)"/.exec(attributes)?.[1] || app;
