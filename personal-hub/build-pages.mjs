@@ -21,7 +21,7 @@ const lookupVersion = createHash('sha256').update(lookupSource + finance).digest
 html = html.replace(/src="lookup\.js(?:\?[^"]*)?"/, `src="lookup.js?v=${lookupVersion}"`);
 html = html.replaceAll('href="https://possbb.github.io/assets/finance.html"', 'href="./finance.html"');
 html = html.replace(/<button\b([^>]*\bdata-app="([^"]+)"[^>]*)>([\s\S]*?)<\/button>/g, (_, attributes, app, content) => {
-  const section = { godot: 1, obsidian: 4, baidu: 4, feishu: 4 }[app];
+  const section = { godot: 1, obsidian: 4, baidu: 4, feishu: 4, 'google-drive': 4 }[app];
   if (section === undefined) throw new Error('Unknown desktop app: ' + app);
   const clean = attributes.replace(/\s*(?:type|data-app|aria-label)="[^"]*"/g, '');
   const label = /aria-label="([^"]*)"/.exec(attributes)?.[1] || app;
@@ -43,7 +43,7 @@ await cp(path.join(here, 'dist/style.css'), path.join(output, 'style.css'));
 await cp(path.join(here, 'dist/lookup.js'), path.join(output, 'lookup.js'));
 await mkdir(path.join(output, 'images'), { recursive: true });
 await cp(path.join(here, 'dist/images'), path.join(output, 'images'), { recursive: true });
-if ((html.match(/<article class="card">/g) || []).length !== 24 || html.includes('data-app=')) {
+if ((html.match(/<article class="card">/g) || []).length !== 25 || html.includes('data-app=')) {
   throw new Error('Unexpected hosted navigation content');
 }
-console.log('Pages ready: personal homepage + finance.html + /assets/ finance entry; 24 cards preserved.');
+console.log('Pages ready: personal homepage + finance.html + /assets/ finance entry; 25 cards preserved.');
