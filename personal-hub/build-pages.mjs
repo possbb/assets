@@ -13,6 +13,9 @@ await rename(path.join(output, 'index.html'), path.join(output, 'finance.html'))
 await mkdir(path.join(output, 'assets'), { recursive: true });
 await writeFile(path.join(output, 'assets', 'index.html'), finance);
 let html = await readFile(path.join(here, 'dist/index.html'), 'utf8');
+const mobileSource = await readFile(path.join(here, 'dist/mobile-links.mjs'), 'utf8');
+const mobileVersion = createHash('sha256').update(mobileSource).digest('hex').slice(0, 12);
+html = html.replace('src="mobile-links.mjs"', `src="mobile-links.mjs?v=${mobileVersion}"`);
 const lookupSource = await readFile(path.join(here, 'dist/lookup.js'), 'utf8');
 const styleSource = await readFile(path.join(here, 'dist/style.css'), 'utf8');
 const styleVersion = createHash('sha256').update(styleSource).digest('hex').slice(0, 12);
@@ -41,9 +44,10 @@ for (const file of ['site-lock.js', 'site-lock.css']) await cp(path.join(here, f
 await writeFile(path.join(output, 'index.html'), html);
 await cp(path.join(here, 'dist/style.css'), path.join(output, 'style.css'));
 await cp(path.join(here, 'dist/lookup.js'), path.join(output, 'lookup.js'));
+await cp(path.join(here, 'dist/mobile-links.mjs'), path.join(output, 'mobile-links.mjs'));
 await mkdir(path.join(output, 'images'), { recursive: true });
 await cp(path.join(here, 'dist/images'), path.join(output, 'images'), { recursive: true });
-if ((html.match(/<article class="card">/g) || []).length !== 26 || html.includes('data-app=')) {
+if ((html.match(/<article class="card"(?: [^>]*)?>/g) || []).length !== 26 || html.includes('data-app=')) {
   throw new Error('Unexpected hosted navigation content');
 }
 console.log('Pages ready: personal homepage + finance.html + /assets/ finance entry; 26 cards preserved.');
