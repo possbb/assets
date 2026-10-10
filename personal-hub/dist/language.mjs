@@ -1,4 +1,5 @@
 const messages = {
+  'Paisley异闻录': 'Paisley', '游戏介绍、宣传片与实机演示': 'Game overview, trailers and gameplay',
   'CHEN的工作台': "CHEN's Workspace",
   '我的网站、创作工具与桌面应用总览': 'My websites, creative tools and desktop apps',
   '资料查询': 'Quick search', '打开家财管家 ↗': 'Open Family Finance ↗',

@@ -52,7 +52,7 @@ await cp(path.join(here, 'dist/mobile-links.mjs'), path.join(output, 'mobile-lin
 await cp(path.join(here, 'dist/language.mjs'), path.join(output, 'language.mjs'));
 await mkdir(path.join(output, 'images'), { recursive: true });
 await cp(path.join(here, 'dist/images'), path.join(output, 'images'), { recursive: true });
-if ((html.match(/<article class="card"(?: [^>]*)?>/g) || []).length !== 25 || html.includes('data-app=')) {
+if ((html.match(/<article class="card"(?: [^>]*)?>/g) || []).length !== 26 || html.includes('data-app=')) {
   throw new Error('Unexpected hosted navigation content');
 }
-console.log('Pages ready: personal homepage + finance.html + /assets/ finance entry; 25 cards preserved.');
+console.log('Pages ready: personal homepage + finance.html + /assets/ finance entry; 26 cards preserved.');
