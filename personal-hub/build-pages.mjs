@@ -37,8 +37,9 @@ html = html.replace(/<button\b([^>]*\bdata-app="([^"]+)"[^>]*)>([\s\S]*?)<\/butt
 html = html.replace('<script src="app.js"></script>', '');
 html = html.replace('本地个人首页', '个人网站首页');
 html = html.replace('桌面应用仅限本机', '本机启动需先运行本地个人页服务');
+const lockStyleVersion = createHash('sha256').update(await readFile(path.join(here, 'site-lock.css'))).digest('hex').slice(0, 12);
 const gate = await readFile(path.join(here, 'site-lock.html'), 'utf8');
-html = html.replace('</head>', '<link rel="stylesheet" href="site-lock.css"></head>')
+html = html.replace('</head>', `<link rel="stylesheet" href="site-lock.css?v=${lockStyleVersion}"></head>`)
   .replace('<body>', '<body class="site-locked">' + gate)
   .replace('</body>', '<script type="module" src="site-lock.js"></script></body>');
 const lockSource = (await readFile(path.join(here, '../web/app/lib/page-lock.ts'), 'utf8')).replace('import.meta.env.BASE_URL', 'new URL("./", import.meta.url).href');
