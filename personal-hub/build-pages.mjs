@@ -13,6 +13,9 @@ await rename(path.join(output, 'index.html'), path.join(output, 'finance.html'))
 await mkdir(path.join(output, 'assets'), { recursive: true });
 await writeFile(path.join(output, 'assets', 'index.html'), finance);
 let html = await readFile(path.join(here, 'dist/index.html'), 'utf8');
+const languageSource = await readFile(path.join(here, 'dist/language.mjs'), 'utf8');
+const languageVersion = createHash('sha256').update(languageSource).digest('hex').slice(0, 12);
+html = html.replace('src="language.mjs"', `src="language.mjs?v=${languageVersion}"`);
 const mobileSource = await readFile(path.join(here, 'dist/mobile-links.mjs'), 'utf8');
 const mobileVersion = createHash('sha256').update(mobileSource).digest('hex').slice(0, 12);
 html = html.replace('src="mobile-links.mjs"', `src="mobile-links.mjs?v=${mobileVersion}"`);
@@ -45,6 +48,7 @@ await writeFile(path.join(output, 'index.html'), html);
 await cp(path.join(here, 'dist/style.css'), path.join(output, 'style.css'));
 await cp(path.join(here, 'dist/lookup.js'), path.join(output, 'lookup.js'));
 await cp(path.join(here, 'dist/mobile-links.mjs'), path.join(output, 'mobile-links.mjs'));
+await cp(path.join(here, 'dist/language.mjs'), path.join(output, 'language.mjs'));
 await mkdir(path.join(output, 'images'), { recursive: true });
 await cp(path.join(here, 'dist/images'), path.join(output, 'images'), { recursive: true });
 if ((html.match(/<article class="card"(?: [^>]*)?>/g) || []).length !== 25 || html.includes('data-app=')) {

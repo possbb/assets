@@ -1,4 +1,4 @@
-body.site-locked > :not(#site-login) { display: none !important; }
+body.site-locked > :not(#site-login):not(.language-switch) { display: none !important; }
 #site-login[hidden], #site-login-toolbar[hidden] { display: none !important; }
 #site-login { min-height: 100vh; display: grid; place-items: center; padding: 24px; box-sizing: border-box; }
 #site-login form { width: min(100%, 420px); padding: 32px; box-sizing: border-box; background: #fff; border: 1px solid #dce6df; border-radius: 20px; box-shadow: 0 16px 60px #193d3510; }
@@ -16,3 +16,5 @@ body.site-locked > :not(#site-login) { display: none !important; }
 #site-login p{color:#adc1d1}#site-password{background:#0c1d2c;border-color:#3b5970;color:#edf5fc}
 #site-submit{background:#1471db}#site-login-toolbar{background:#0c1d2c;color:#abc2d4;border-bottom:1px solid #294356}
 #site-logout{background:#203b50;color:#eaf5ff;border-color:#3b5970}
+
+body.site-locked #site-login{min-height:calc(100vh - 44px)}

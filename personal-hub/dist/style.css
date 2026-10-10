@@ -11,3 +11,9 @@ main{max-width:1680px;margin:auto;padding:24px 28px 16px}.workspace-header{displ
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 
 .card:has(.mobile-web-link){position:relative}.mobile-web-link{position:absolute;right:9px;bottom:7px;padding:3px 6px;font-size:11px;color:#b9d6ec;border:1px solid #3d5a70;border-radius:5px;background:#233d52}.card:has(.mobile-web-link) .card-action{padding-bottom:28px}
+
+.language-switch{max-width:1680px;margin:auto;padding:12px 28px 0;display:flex;align-items:center;justify-content:flex-end;gap:7px;color:var(--muted)}
+.language-switch button{border:1px solid transparent;background:transparent;color:var(--muted);padding:6px 9px;border-radius:6px;font-size:13px;min-height:32px}
+.language-switch button[aria-pressed="true"]{background:#233d52;border-color:#3d5a70;color:#fff}
+html[lang="en"] .card h3{font-size:13px;overflow-wrap:normal}
+@media(max-width:600px){.language-switch{padding:8px 12px 0}html[lang="en"] .card{height:132px}html[lang="en"] .workspace-header h1{font-size:25px}html[lang="en"] h2{font-size:18px}html[lang="en"] .content-focus{font-size:10px}}
