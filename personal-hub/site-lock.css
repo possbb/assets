@@ -18,3 +18,4 @@ body.site-locked > :not(#site-login):not(.language-switch) { display: none !impo
 #site-logout{background:#203b50;color:#eaf5ff;border-color:#3b5970}
 
 body.site-locked #site-login{min-height:calc(100vh - 44px)}
+body.site-locked .language-switch{position:absolute;top:0;right:0;width:100%;z-index:2}body.site-locked #site-login{min-height:100vh;padding-top:64px}
