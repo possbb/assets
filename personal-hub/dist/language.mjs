@@ -1,4 +1,5 @@
 const messages = {
+  'P+方法论': 'P+ Method', '参考图转化为马赛克艺术的创作流程': 'From reference photos to mosaic art',
   'Paisley异闻录': 'Paisley', '游戏介绍、宣传片与实机演示': 'Game overview, trailers and gameplay',
   'CHEN的工作台': "CHEN's Workspace",
   '我的网站、创作工具与桌面应用总览': 'My websites, creative tools and desktop apps',
