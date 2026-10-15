@@ -36,7 +36,7 @@ const messages = {
   '游戏和西班牙生活': 'Games & life in Spain', '小娃画作': "Kids' Art Gallery",
   '孩子的画作与成长': 'Artwork and growing-up memories', '前台': 'Gallery', '后台': 'Manage',
   '抖音视频管理': 'Douyin Videos', '音乐、游戏': 'Music & games',
-  '中西像素对照': 'China–Spain Pixels', '中西文化像素对比': 'Pixel views of Chinese and Spanish culture',
+  '趣说西班牙素材': 'Spain Stories & Content Ideas', '中西文化像素对比': 'Pixel views of Chinese and Spanish culture',
   '小红书': 'RED', '小红书笔记管理': 'Xiaohongshu Posts', '中西文化差异': 'China–Spain culture',
   '游戏美术与素材管理': 'Game art and assets', '游戏开发与项目管理': 'Game development and projects',
   '本机': 'Desktop', '网页': 'Web', '手机App': 'App', '刷新线上内容': 'Refresh',
