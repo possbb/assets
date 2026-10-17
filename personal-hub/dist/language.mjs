@@ -1,4 +1,5 @@
 const messages = {
+  '时区地图': 'Time Zone Map', '世界时区与时间查询': 'World time zones and local times',
   '消费分析正式版': 'Spending Analytics · Live', '消费账单与支出分析': 'Spending records and expense analysis',
   'P+方法论': 'P+ Method', '参考图转化为马赛克艺术的创作流程': 'From reference photos to mosaic art',
   'Paisley异闻录': 'Paisley', '游戏介绍、宣传片与实机演示': 'Game overview, trailers and gameplay',
