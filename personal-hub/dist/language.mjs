@@ -1,4 +1,5 @@
 const messages = {
+  '职业规划': 'Career Strategy', '职业方向与发展策略': 'Career direction and development',
   '时区地图': 'Time Zone Map', '世界时区与时间查询': 'World time zones and local times',
   '消费分析正式版': 'Spending Analytics · Live', '消费账单与支出分析': 'Spending records and expense analysis',
   'P+方法论': 'P+ Method', '参考图转化为马赛克艺术的创作流程': 'From reference photos to mosaic art',
