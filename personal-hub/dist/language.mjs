@@ -2,7 +2,7 @@ const messages = {
   '职业规划': 'Career Strategy', '职业方向与发展策略': 'Career direction and development',
   '时区地图': 'Time Zone Map', '世界时区与时间查询': 'World time zones and local times',
   '消费分析正式版': 'Spending Analytics · Live', '消费账单与支出分析': 'Spending records and expense analysis',
-  'P+方法论': 'P+ Method', '参考图转化为马赛克艺术的创作流程': 'From reference photos to mosaic art',
+  '艺术图片设计': 'Art Image Design', '参考图转化为马赛克艺术的创作流程': 'From reference photos to mosaic art',
   'Paisley异闻录': 'Paisley', '游戏介绍、宣传片与实机演示': 'Game overview, trailers and gameplay',
   'CHEN的工作台': "CHEN's Workspace",
   '我的网站、创作工具与桌面应用总览': 'My websites, creative tools and desktop apps',
